@@ -211,7 +211,14 @@
   sigma = eta * sigma_hat
   ```
 
-  For Appendix G use `sigma_hat_b=-Rb_ser`, `sigma_hat_bt=Rbt_ser`, `nu_hat_bt=0.5`, `epsilon_hat_bt=1`, explicit rising/descending `nu_0` and `omega_1`, and include the descending compression branch only for `eta >= 0.85`. Solve the implicit parameter equations numerically with a bounded scalar solver and insert origin, peak, and `eta=0.85` into the returned arrays. In `signed=True`, compression is negative in both arrays and tension is positive; `signed=False` retains positive magnitudes for compatibility.
+  For Appendix G use `sigma_hat_b=-Rb_ser`, `sigma_hat_bt=Rbt_ser`,
+  `nu_hat_bt=(0.6 + 0.15*Rbtn/2.5)`, `epsilon_hat_bt=1`, explicit
+  rising/descending `nu_0` and `omega_1`, and include the descending compression
+  branch only for `eta >= 0.85`. Solve the implicit parameter equations
+  numerically with a bounded scalar solver and insert origin, peak, and
+  `eta=0.85` into the returned arrays. In `signed=True`, compression is negative
+  in both arrays and tension is positive; `signed=False` retains positive
+  magnitudes for compatibility.
 
 - [ ] **Step 5: Add point metadata and update exports.**
 
@@ -352,7 +359,11 @@
   epsilon = epsilon_bar * (Ryn / E)
   ```
 
-  Use exact normalized coordinates from the source for OBD, OACD and OACDEF. C690 is absent from B9 and must raise a table В.9 error. Do not scale normalized source coordinates by selected `Ry`; any design-resistance conversion remains a separately named operation.
+  Use exact normalized coordinates from the source for OBD, OACD and OACDEF;
+  specifically, OBD uses `B=(1,1)` while OACD/OACDEF use `C=(1.7,1)`.
+  C690 is absent from B9 and must raise a table В.9 error. Do not scale
+  normalized source coordinates by selected `Ry`; any design-resistance
+  conversion remains a separately named operation.
 
 - [ ] **Step 6: Implement diagram variants and signed arrays.**
 

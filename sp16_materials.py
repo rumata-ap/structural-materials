@@ -498,8 +498,12 @@ class StructuralSteel:
         if eps_max is not None:
             if not np.isfinite(eps_max) or eps_max <= 0:
                 raise ValueError("eps_max должен быть положительным и конечным.")
-            if not signed:
-                selected[-1] = (float(eps_max), selected[-1][1])
+            if len(selected) > 1 and eps_max < abs(selected[-2][0]):
+                raise ValueError(
+                    "eps_max не может быть меньше деформации предпоследней "
+                    "характерной точки диаграммы."
+                )
+            selected[-1] = (float(eps_max), selected[-1][1])
         if signed:
             positive = selected
             negative = [(-epsilon, -sigma) for epsilon, sigma in reversed(positive[1:])]
@@ -554,7 +558,9 @@ class StructuralSteel:
         full = {
             'O': (0.0, 0.0),
             'A': (0.8 * eps_y if group in {1, 2} else 0.9 * eps_y, (0.8 if group in {1, 2} else 0.9) * self.Ryn),
-            'B': (1.7 * eps_y, self.Ryn),
+            # В варианте OBD точка B имеет \bar{epsilon}=1.0. Значение
+            # 1.7 относится к точке C (\bar{epsilon}_{NT}) в OACD/OACDEF.
+            'B': (1.0 * eps_y, self.Ryn),
             'C': (1.7 * eps_y, self.Ryn),
             'D': (p['eps_st'] * eps_y, self.Ryn),
             'E': (p['eps_u'] * eps_y, p['sig_u'] * self.Ryn),
@@ -757,7 +763,7 @@ class SteelBolt:
 
     def tension_capacity(self) -> Optional[float]:
         """
-        Несущая способность одного болта на растяжение Nbt = Rbt * Abn * gamma_b, кН (п. 14.2.5).
+        Несущая способность одного болта на растяжение Nbt = Rbt * Abn * gamma_c, кН (п. 14.2.5).
         """
         if self.Rbt is None:
             return None
@@ -797,6 +803,7 @@ class SteelBolt:
 | Несущая способность на срез (1 плоскость) | $N_{{bs}}$ | **{d['Nbs_1plane_kN']}** | кН |
 | Несущая способность на растяжение | $N_{{bt}}$ | **{nbt_str}** | кН |
 | Коэффициент условий работы соединения | $\\gamma_b$ | {d['gamma_b']} | - |
+| Коэффициент условий работы конструкции | $\\gamma_c$ | {d['gamma_c']} | - |
 """
         return md
 
@@ -827,6 +834,7 @@ class SteelBolt:
     <tr><td>Несущая способность на срез (1 плоскость среза)</td><td style="text-align: center;"><i>N<sub>bs</sub></i></td><td style="text-align: center;"><strong>{d['Nbs_1plane_kN']}</strong></td><td style="text-align: center;">кН</td></tr>
     <tr><td>Несущая способность на растяжение</td><td style="text-align: center;"><i>N<sub>bt</sub></i></td><td style="text-align: center;"><strong>{nbt_str}</strong></td><td style="text-align: center;">{nbt_unit}</td></tr>
     <tr><td>Коэффициент условий работы соединения</td><td style="text-align: center;">&gamma;<sub>b</sub></td><td style="text-align: center;">{d['gamma_b']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Коэффициент условий работы конструкции</td><td style="text-align: center;">&gamma;<sub>c</sub></td><td style="text-align: center;">{d['gamma_c']}</td><td style="text-align: center;">-</td></tr>
   </tbody>
 </table>
 </div>"""

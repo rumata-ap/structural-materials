@@ -102,6 +102,23 @@ def test_sp16_b9_signed_curve_mirrors_tension_and_compression():
     assert np.max(np.abs(sig)) == pytest.approx(steel.Ryn)
 
 
+def test_sp16_obd_uses_unit_normalized_point_b_not_point_c():
+    steel = StructuralSteel('С255', profile_type='plates', thickness=3.0)
+    points = steel.get_diagram_points('OBD')
+
+    assert tuple(points) == ('O', 'B', 'D')
+    assert points['B'][0] == pytest.approx(steel.Ryn / steel.E)
+    assert points['B'][1] == pytest.approx(steel.Ryn)
+
+
+def test_sp16_signed_diagram_honors_eps_max():
+    steel = StructuralSteel('С255', profile_type='plates', thickness=3.0)
+    eps, _ = steel.get_diagram('OACD', n_points=100, eps_max=0.04, signed=True)
+
+    assert eps[0] == pytest.approx(-0.04)
+    assert eps[-1] == pytest.approx(0.04)
+
+
 def test_sp16_bolt_areas_are_taken_from_g9_and_parenthetical_diameters_are_gated():
     assert BOLT_AREAS[20]['A'] == 314.0
     assert BOLT_AREAS[20]['Abn'] == 245.0
@@ -141,6 +158,13 @@ def test_sp16_code_snippet_contains_correct_bolt_api():
     assert "grade='С255'" in code
     assert 'gamma_c=' in code
     assert 'Rbs = bolt.Rbs' in code
+
+
+def test_sp16_bolt_presentations_include_both_working_coefficients():
+    bolt = SteelBolt('8.8', diameter=20, gamma_b=0.9, gamma_c=0.8)
+
+    assert '$\\gamma_c$' in bolt.to_markdown()
+    assert '&gamma;<sub>c</sub>' in bolt.to_html()
 
 
 def test_sp16_grade_catalogs_include_source_variants():

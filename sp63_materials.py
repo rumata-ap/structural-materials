@@ -602,29 +602,62 @@ class Concrete:
             sig_parts.append(segment_sig)
         return np.concatenate(eps_parts), np.concatenate(sig_parts)
 
-    def _appendix_g_parameters(self, state: str) -> Tuple[float, float, float, float]:
-        if state == 'compression':
+    def _appendix_g_parameters(
+        self, state: str, descending: bool = False
+    ) -> Tuple[float, float, float, float, float]:
+        """Return the source parameters for formulas Г.2 and Г.5–Г.9.
+
+        The compression peak abscissa is calculated by Г.8; it is not the
+        tabular ``eps_b0`` value from 6.1.14.  The descending branch uses the
+        separate Г.7 values for ``nu_0`` and ``omega_1``.  For tension, Г.9
+        supplies ``nu_hat_bt`` and Г.6 is used with ``nu_0 = 1``.
+        """
+        state_clean = str(state).lower()
+        if state_clean == 'compression':
+            grade_value = float(self.grade.replace('B', ''))
+            if self.concrete_type in {'heavy', 'fine_grained', 'tensioning'}:
+                lambda_value = 1.0
+            elif self.concrete_type in {'light', 'porous'}:
+                lambda_value = self.density / 2400.0
+            elif self.concrete_type == 'cellular':
+                lambda_value = 0.25 + 0.35 * grade_value
+            else:  # pragma: no cover - constructor validates the type
+                raise ValueError(f"Неизвестный вид бетона для приложения Г: {self.concrete_type}")
+
+            numerator = 1.0 + 0.75 * lambda_value * grade_value / 60.0 + 0.2 * lambda_value / grade_value
+            denominator = 0.12 + grade_value / 60.0 + 0.2 / grade_value
+            eps_peak = (
+                grade_value / self.Eb * lambda_value * numerator / denominator
+            ) * self.gamma_b5
             sigma_hat = self.Rb_ser
-            eps_peak = self.eps_b0
             nu_hat = sigma_hat / max(self.Eb * eps_peak, 1e-12)
-            omega_1 = 0.15
-            nu_0 = 1.0
-        else:
+            if descending:
+                nu_0 = 2.05 * nu_hat
+                omega_1 = 1.95 * nu_hat - 0.138
+            else:
+                nu_0 = 1.0
+                omega_1 = 2.0 - 2.5 * nu_hat
+        elif state_clean == 'tension':
             sigma_hat = self.Rbt_ser
             eps_peak = self.eps_bt0
-            nu_hat = 0.5
-            omega_1 = 0.15
+            nu_hat = (0.6 + 0.15 * self.Rbtn / 2.5)
             nu_0 = 1.0
-        return sigma_hat, eps_peak, min(max(nu_hat, 1e-6), 1.0), nu_0
+            omega_1 = 2.0 - 2.5 * nu_hat
+        else:
+            raise ValueError("state должен быть 'compression' или 'tension'.")
+        return sigma_hat, eps_peak, max(nu_hat, 1e-6), nu_0, omega_1
 
     def _appendix_g_point(self, eta: float, state: str, signed: bool, descending: bool = False) -> Tuple[float, float]:
-        sigma_abs, _, nu_hat, nu_0 = self._appendix_g_parameters(state)
-        omega_1 = 0.15
+        sigma_abs, _, nu_hat, nu_0, omega_1 = self._appendix_g_parameters(state, descending)
         omega_2 = 1.0 - omega_1
         root = np.sqrt(max(0.0, 1.0 - omega_1 * eta - omega_2 * eta * eta))
         if descending:
             nu = nu_hat - (nu_0 - nu_hat) * root
-            nu = max(abs(nu), 1e-6)
+            if nu <= 1e-9:
+                raise ValueError(
+                    "Нисходящая ветвь Приложения Г не определена при выбранном η: "
+                    f"ν_m={nu:g}."
+                )
         else:
             nu = nu_hat + (1.0 - nu_hat) * root
         if state == 'compression':

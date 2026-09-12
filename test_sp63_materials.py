@@ -65,6 +65,24 @@ def test_concrete_appendix_g_uses_ser_strength_and_eta_cutoff():
     assert eps[-1] == pytest.approx(compression['eta_085'][0])
 
 
+def test_concrete_appendix_g_uses_g8_g7_and_g9_parameters():
+    concrete = Concrete('B25', long_term=False)
+    compression = concrete.get_diagram_points('nonlinear', 'compression', signed=True)
+    tension = concrete.get_diagram_points('nonlinear', 'tension', signed=True)
+
+    grade = 25.0
+    numerator = 1.0 + 0.75 * grade / 60.0 + 0.2 / grade
+    denominator = 0.12 + grade / 60.0 + 0.2 / grade
+    expected_eps_peak = grade / concrete.Eb * numerator / denominator
+    assert abs(compression['peak'][0]) == pytest.approx(expected_eps_peak)
+    assert compression['eta_085'][0] < compression['peak'][0]
+    assert abs(compression['eta_085'][0]) < 0.01
+
+    nu_bt_hat = 0.6 + 0.15 * concrete.Rbtn / 2.5
+    expected_tension_peak = concrete.Rbt_ser / (concrete.Eb * nu_bt_hat)
+    assert tension['peak'][0] == pytest.approx(expected_tension_peak)
+
+
 def test_concrete_diagrams_keep_exact_endpoints_and_signed_convention():
     concrete = Concrete('B25', long_term=False)
 
