@@ -18,7 +18,7 @@ import numpy as np
 # ФИЗИЧЕСКИЕ КОНСТАНТЫ СТАЛИ (п. 5.1 СП 16.13330.2017)
 # ==============================================================================
 STEEL_E = 206000.0        # Модуль упругости E, МПа (2.06 * 10^5 МПа)
-STEEL_G = 84000.0         # Модуль сдвига G, МПа (0.84 * 10^5 МПа)
+STEEL_G = 79000.0         # Модуль сдвига G, МПа (п. 5.1 СП 16)
 STEEL_NU = 0.30           # Коэффициент Пуассона nu
 STEEL_RHO = 7850.0        # Плотность стали rho, кг/м3
 STEEL_ALPHA = 1.2e-5      # Коэффициент линейного расширения alpha, 1/°C
@@ -98,6 +98,15 @@ TABLE_B3_PLATES_TUBES = {
         {'t_min': 16.0, 't_max': 40.0, 'Ryn': 345.0, 'Run': 490.0, 'Ry_stat': 340.0, 'Ry_nonstat': 330.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
         {'t_min': 40.0, 't_max': 50.0, 'Ryn': 335.0, 'Run': 490.0, 'Ry_stat': 330.0, 'Ry_nonstat': 320.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
     ],
+    'С355-К': [
+        {'t_min': 8.0, 't_max': 16.0, 'Ryn': 355.0, 'Run': 490.0, 'Ry_stat': 350.0, 'Ry_nonstat': 340.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
+        {'t_min': 16.0, 't_max': 40.0, 'Ryn': 345.0, 'Run': 490.0, 'Ry_stat': 340.0, 'Ry_nonstat': 330.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
+        {'t_min': 40.0, 't_max': 50.0, 'Ryn': 335.0, 'Run': 490.0, 'Ry_stat': 330.0, 'Ry_nonstat': 320.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
+    ],
+    'С355П': [
+        {'t_min': 8.0, 't_max': 16.0, 'Ryn': 355.0, 'Run': 490.0, 'Ry_stat': 350.0, 'Ry_nonstat': 340.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
+        {'t_min': 16.0, 't_max': 40.0, 'Ryn': 345.0, 'Run': 490.0, 'Ry_stat': 340.0, 'Ry_nonstat': 330.0, 'Ru_stat': 460.0, 'Ru_nonstat': 450.0},
+    ],
     'С390': [
         {'t_min': 8.0, 't_max': 50.0, 'Ryn': 390.0, 'Run': 520.0, 'Ry_stat': 380.0, 'Ry_nonstat': 370.0, 'Ru_stat': 505.0, 'Ru_nonstat': 495.0},
     ],
@@ -109,7 +118,10 @@ TABLE_B3_PLATES_TUBES = {
     ],
     'С590': [
         {'t_min': 8.0, 't_max': 50.0, 'Ryn': 590.0, 'Run': 685.0, 'Ry_stat': 575.0, 'Ry_nonstat': 560.0, 'Ru_stat': 670.0, 'Ru_nonstat': 650.0},
-    ]
+    ],
+    'С690': [
+        {'t_min': 8.0, 't_max': 50.0, 'Ryn': 690.0, 'Run': 785.0, 'Ry_stat': None, 'Ry_nonstat': 650.0, 'Ru_stat': None, 'Ru_nonstat': 745.0},
+    ],
 }
 
 # Таблица В.4: Двутавры с параллельными гранями полок по ГОСТ Р 57837
@@ -152,17 +164,41 @@ TABLE_B4_PARALLEL_BEAMS = {
     ]
 }
 
+# Variant 1 is a source-table variant, not a request to fall back to another
+# grade.  Keep separate catalog entries even where their rows coincide.
+TABLE_B4_PARALLEL_BEAMS['С255Б-1'] = [dict(row) for row in TABLE_B4_PARALLEL_BEAMS['С255Б']]
+TABLE_B4_PARALLEL_BEAMS['С345Б-1'] = [
+    {'t_min': 0.0, 't_max': 10.0, 'Ryn': 345.0, 'Run': 490.0, 'Ry': 335.0, 'Ru': 480.0},
+    {'t_min': 10.0, 't_max': 20.0, 'Ryn': 325.0, 'Run': 470.0, 'Ry': 315.0, 'Ru': 460.0},
+    {'t_min': 20.0, 't_max': 40.0, 'Ryn': 305.0, 'Run': 460.0, 'Ry': 300.0, 'Ru': 450.0},
+    {'t_min': 40.0, 't_max': 60.0, 'Ryn': 285.0, 'Run': 450.0, 'Ry': 280.0, 'Ru': 440.0},
+]
+TABLE_B4_PARALLEL_BEAMS['С355Б-1'] = [
+    {'t_min': 0.0, 't_max': 20.0, 'Ryn': 355.0, 'Run': 470.0, 'Ry': 345.0, 'Ru': 460.0},
+    {'t_min': 20.0, 't_max': 40.0, 'Ryn': 345.0, 'Run': 470.0, 'Ry': 335.0, 'Ru': 460.0},
+    {'t_min': 40.0, 't_max': 60.0, 'Ryn': 335.0, 'Run': 470.0, 'Ry': 325.0, 'Ru': 460.0},
+]
+for _b4_rows in TABLE_B4_PARALLEL_BEAMS.values():
+    _b4_rows[-1]['t_max'] = None
+
 # Таблица В.6: Смятие торцевой поверхности Rp (МПа) в зависимости от Run
 TABLE_B6_RP = {
-    360.0: {'Rp_stat': 351.0, 'Rp_nonstat': 343.0, 'Rlp_stat': 176.0, 'Rlp_nonstat': 171.0},
-    370.0: {'Rp_stat': 361.0, 'Rp_nonstat': 352.0, 'Rlp_stat': 180.0, 'Rlp_nonstat': 176.0},
-    380.0: {'Rp_stat': 371.0, 'Rp_nonstat': 362.0, 'Rlp_stat': 185.0, 'Rlp_nonstat': 181.0},
-    470.0: {'Rp_stat': 459.0, 'Rp_nonstat': 448.0, 'Rlp_stat': 229.0, 'Rlp_nonstat': 224.0},
-    480.0: {'Rp_stat': 468.0, 'Rp_nonstat': 457.0, 'Rlp_stat': 234.0, 'Rlp_nonstat': 228.0},
-    490.0: {'Rp_stat': 478.0, 'Rp_nonstat': 467.0, 'Rlp_stat': 239.0, 'Rlp_nonstat': 233.0},
-    500.0: {'Rp_stat': 488.0, 'Rp_nonstat': 476.0, 'Rlp_stat': 244.0, 'Rlp_nonstat': 238.0},
-    520.0: {'Rp_stat': 507.0, 'Rp_nonstat': 495.0, 'Rlp_stat': 254.0, 'Rlp_nonstat': 248.0},
-    540.0: {'Rp_stat': 527.0, 'Rp_nonstat': 514.0, 'Rlp_stat': 263.0, 'Rlp_nonstat': 257.0},
+    360.0: {'Rp_stat': 351.0, 'Rp_nonstat': 343.0, 'Rlp_stat': 176.0, 'Rlp_nonstat': 171.0, 'Rcd_stat': 9.0, 'Rcd_nonstat': 9.0},
+    370.0: {'Rp_stat': 361.0, 'Rp_nonstat': 352.0, 'Rlp_stat': 180.0, 'Rlp_nonstat': 176.0, 'Rcd_stat': 9.0, 'Rcd_nonstat': 9.0},
+    380.0: {'Rp_stat': 371.0, 'Rp_nonstat': 362.0, 'Rlp_stat': 185.0, 'Rlp_nonstat': 181.0, 'Rcd_stat': 9.0, 'Rcd_nonstat': 9.0},
+    390.0: {'Rp_stat': 380.0, 'Rp_nonstat': 371.0, 'Rlp_stat': 190.0, 'Rlp_nonstat': 185.0, 'Rcd_stat': 10.0, 'Rcd_nonstat': 10.0},
+    400.0: {'Rp_stat': 390.0, 'Rp_nonstat': 381.0, 'Rlp_stat': 195.0, 'Rlp_nonstat': 190.0, 'Rcd_stat': 10.0, 'Rcd_nonstat': 10.0},
+    430.0: {'Rp_stat': 420.0, 'Rp_nonstat': 409.0, 'Rlp_stat': 210.0, 'Rlp_nonstat': 204.0, 'Rcd_stat': 10.0, 'Rcd_nonstat': 10.0},
+    440.0: {'Rp_stat': 429.0, 'Rp_nonstat': 419.0, 'Rlp_stat': 215.0, 'Rlp_nonstat': 209.0, 'Rcd_stat': 11.0, 'Rcd_nonstat': 11.0},
+    450.0: {'Rp_stat': 439.0, 'Rp_nonstat': 428.0, 'Rlp_stat': 220.0, 'Rlp_nonstat': 214.0, 'Rcd_stat': 11.0, 'Rcd_nonstat': 11.0},
+    460.0: {'Rp_stat': 449.0, 'Rp_nonstat': 438.0, 'Rlp_stat': 224.0, 'Rlp_nonstat': 219.0, 'Rcd_stat': 11.0, 'Rcd_nonstat': 11.0},
+    470.0: {'Rp_stat': 459.0, 'Rp_nonstat': 448.0, 'Rlp_stat': 229.0, 'Rlp_nonstat': 224.0, 'Rcd_stat': 11.0, 'Rcd_nonstat': 11.0},
+    480.0: {'Rp_stat': 468.0, 'Rp_nonstat': 457.0, 'Rlp_stat': 234.0, 'Rlp_nonstat': 228.0, 'Rcd_stat': 12.0, 'Rcd_nonstat': 12.0},
+    490.0: {'Rp_stat': 478.0, 'Rp_nonstat': 467.0, 'Rlp_stat': 239.0, 'Rlp_nonstat': 233.0, 'Rcd_stat': 12.0, 'Rcd_nonstat': 12.0},
+    510.0: {'Rp_stat': 498.0, 'Rp_nonstat': 486.0, 'Rlp_stat': 249.0, 'Rlp_nonstat': 243.0, 'Rcd_stat': 12.0, 'Rcd_nonstat': 12.0},
+    540.0: {'Rp_stat': 527.0, 'Rp_nonstat': 514.0, 'Rlp_stat': 263.0, 'Rlp_nonstat': 257.0, 'Rcd_stat': 13.0, 'Rcd_nonstat': 13.0},
+    570.0: {'Rp_stat': 556.0, 'Rp_nonstat': 543.0, 'Rlp_stat': 278.0, 'Rlp_nonstat': 271.0, 'Rcd_stat': 14.0, 'Rcd_nonstat': 14.0},
+    590.0: {'Rp_stat': 576.0, 'Rp_nonstat': 562.0, 'Rlp_stat': 288.0, 'Rlp_nonstat': 281.0, 'Rcd_stat': 14.0, 'Rcd_nonstat': 14.0},
 }
 
 # Таблица Г.5: Расчетные сопротивления болтов в одноболтовых соединениях (МПа)
@@ -176,13 +212,46 @@ TABLE_G5_BOLTS = {
 
 # Площади сечения болтов брутто A (мм2) и нетто по резьбе Abn (мм2) по ГОСТ
 BOLT_AREAS = {
-    12: {'A': 113.1, 'Abn': 84.3},
-    16: {'A': 201.1, 'Abn': 157.0},
-    20: {'A': 314.2, 'Abn': 245.0},
-    24: {'A': 452.4, 'Abn': 353.0},
-    27: {'A': 572.6, 'Abn': 459.0},
-    30: {'A': 706.9, 'Abn': 561.0},
-    36: {'A': 1017.9, 'Abn': 817.0}
+    16: {'A': 201.0, 'Abn': 157.0, 'special_support_only': False},
+    18: {'A': 254.0, 'Abn': 192.0, 'special_support_only': True},
+    20: {'A': 314.0, 'Abn': 245.0, 'special_support_only': False},
+    22: {'A': 380.0, 'Abn': 303.0, 'special_support_only': True},
+    24: {'A': 452.0, 'Abn': 353.0, 'special_support_only': False},
+    27: {'A': 572.0, 'Abn': 459.0, 'special_support_only': True},
+    30: {'A': 706.0, 'Abn': 561.0, 'special_support_only': False},
+    36: {'A': 1017.0, 'Abn': 816.0, 'special_support_only': False},
+    42: {'A': 1385.0, 'Abn': 1120.0, 'special_support_only': False},
+    48: {'A': 1809.0, 'Abn': 1472.0, 'special_support_only': False},
+}
+
+# Таблица 1: коэффициенты условий работы конструкций gamma_c.
+TABLE_1_GAMMA_C = {
+    'обычные условия': 0.75,
+    'повышенная ответственность': 0.80,
+    'расчетная ситуация 3': 0.87,
+    'расчетная ситуация 4': 0.90,
+    'расчетная ситуация 5': 0.95,
+    'особые условия 1': 1.05,
+    'особые условия 2': 1.10,
+    'особые условия 3': 1.15,
+    'особые условия 4': 1.20,
+}
+
+# Таблица В.9, normalized by Ryn and eps_y = Ryn/E.  The group membership is
+# by normative grade family; do not infer it from a selected thickness row.
+TABLE_B9_GROUPS = {
+    1: ('С245', 'С255', 'С255Б', 'С255Б-1'),
+    2: ('С345', 'С345К', 'С355', 'С355-1', 'С355П', 'С345Б', 'С345Б-1', 'С355Б', 'С355Б-1'),
+    3: ('С390', 'С390-1', 'С390Б'),
+    4: ('С440', 'С440Б'),
+    5: ('С550', 'С590'),
+}
+TABLE_B9 = {
+    1: {'eps_pl': 0.8, 'sig_pl': 0.8, 'eps_y': 1.7, 'eps_st': 14.0, 'eps_u': 141.6, 'sig_u': 1.653, 'eps_t': 251.0, 'sig_t': 1.35},
+    2: {'eps_pl': 0.8, 'sig_pl': 0.8, 'eps_y': 1.7, 'eps_st': 16.0, 'eps_u': 88.3, 'sig_u': 1.415, 'eps_t': 153.0, 'sig_t': 1.26},
+    3: {'eps_pl': 0.9, 'sig_pl': 0.9, 'eps_y': 1.7, 'eps_st': 17.0, 'eps_u': 67.1, 'sig_u': 1.345, 'eps_t': 115.0, 'sig_t': 1.23},
+    4: {'eps_pl': 0.9, 'sig_pl': 0.9, 'eps_y': 1.7, 'eps_st': 17.0, 'eps_u': 49.6, 'sig_u': 1.33, 'eps_t': 87.2, 'sig_t': 1.20},
+    5: {'eps_pl': 0.9, 'sig_pl': 0.9, 'eps_y': 1.7, 'eps_st': 18.0, 'eps_u': 26.2, 'sig_u': 1.16, 'eps_t': 51.1, 'sig_t': 1.10},
 }
 
 
@@ -223,11 +292,22 @@ class StructuralSteel:
         gamma_c: float = 1.0,
     ):
         grade_clean = grade.strip().upper().replace('C', 'С') # замена латинской C на русскую С
+        if profile_type.lower() == 'beams':
+            profile_type = 'beams_parallel'
+        if profile_type.lower() not in {'shapes', 'plates', 'tubes', 'beams_parallel'}:
+            raise ValueError(f"Неизвестный тип проката: '{profile_type}'.")
+        if not np.isfinite(thickness) or thickness <= 0:
+            raise ValueError("Толщина проката должна быть положительной и конечной.")
+        if not np.isfinite(gamma_c) or gamma_c <= 0:
+            raise ValueError("gamma_c должна быть положительной и конечной.")
         self.grade = grade_clean
         self.profile_type = profile_type.lower()
         self.thickness = float(thickness)
         self.statistical_control = statistical_control
         self.gamma_c = float(gamma_c)
+        self._table_name = {
+            'shapes': 'В.5', 'plates': 'В.3', 'tubes': 'В.3', 'beams_parallel': 'В.4'
+        }[self.profile_type]
 
         # Выбираем соответствующую нормативную таблицу
         self._row = self._resolve_table_row()
@@ -239,9 +319,6 @@ class StructuralSteel:
 
         if pt == 'shapes':
             tbl = TABLE_B5_SHAPES
-            if self.grade not in tbl:
-                # Если марки нет в табл. В.5, проверяем табл. В.3
-                tbl = TABLE_B3_PLATES_TUBES
         elif pt in ['plates', 'tubes']:
             tbl = TABLE_B3_PLATES_TUBES
         elif pt in ['beams_parallel', 'beams']:
@@ -254,18 +331,22 @@ class StructuralSteel:
             raise ValueError(f"Неизвестный тип проката: '{self.profile_type}'. Выберите 'shapes', 'plates', 'tubes' или 'beams_parallel'.")
 
         if self.grade not in tbl:
-            raise ValueError(f"Марка стали '{self.grade}' не найдена в нормативах для типа '{pt}'. Доступные: {list(tbl.keys())}")
+            raise ValueError(f"Марка стали '{self.grade}' не найдена в таблице {self._table_name} для типа '{pt}'. Доступные: {list(tbl.keys())}")
 
         ranges = tbl[self.grade]
-        for r in ranges:
-            if r['t_min'] <= t <= r['t_max']:
+        for index, r in enumerate(ranges):
+            lower_ok = index == 0 or t > ranges[index - 1]['t_max']
+            upper_ok = r['t_max'] is None or t <= r['t_max']
+            if lower_ok and upper_ok:
                 return r
 
         # Если толщина выходит за диапазон
         t_min_all = min(r['t_min'] for r in ranges)
-        t_max_all = max(r['t_max'] for r in ranges)
+        finite_max = [r['t_max'] for r in ranges if r['t_max'] is not None]
+        t_max_all = max(finite_max) if finite_max else None
         raise ValueError(
-            f"Толщина {t} мм вне допустимого диапазона [{t_min_all}, {t_max_all}] мм для стали {self.grade} ({self.profile_type})."
+            f"Толщина {t} мм вне допустимого диапазона [{t_min_all}, {t_max_all or 'без верхней границы'}] мм "
+            f"для стали {self.grade} ({self.profile_type})."
         )
 
     # --------------------------------------------------------------------------
@@ -304,11 +385,15 @@ class StructuralSteel:
     @property
     def Ry(self) -> float:
         """Расчетное сопротивление растяжению, сжатию и изгибу Ry = Ry_base * gamma_c, МПа."""
+        if self.Ry_base is None:
+            raise ValueError(f"Для стали {self.grade} в выбранной строке таблицы {self._table_name} значение Ry отсутствует.")
         return round(self.Ry_base * self.gamma_c, 1)
 
     @property
     def Ru(self) -> float:
         """Расчетное сопротивление по пределу прочности Ru = Ru_base * gamma_c, МПа."""
+        if self.Ru_base is None:
+            raise ValueError(f"Для стали {self.grade} в выбранной строке таблицы {self._table_name} значение Ru отсутствует.")
         return round(self.Ru_base * self.gamma_c, 1)
 
     @property
@@ -321,22 +406,39 @@ class StructuralSteel:
         """
         Расчетное сопротивление смятию торцевой поверхности при наличии пригонки Rp, МПа (Таблица В.6).
         """
-        run = self.Run
-        if run in TABLE_B6_RP:
-            key = 'Rp_stat' if self.statistical_control else 'Rp_nonstat'
-            return round(TABLE_B6_RP[run][key] * self.gamma_c, 1)
-        # Приближенная интерполяция по Таблице В.6 при нестандартном Run
-        return round(self.Run * (0.975 if self.statistical_control else 0.952) * self.gamma_c, 1)
+        return round(self.Rp_base * self.gamma_c, 1)
+
+    @property
+    def Rp_base(self) -> float:
+        """Табличное сопротивление смятию без gamma_c (таблица В.6)."""
+        if self.Run not in TABLE_B6_RP:
+            raise ValueError(f"Run={self.Run} отсутствует в таблице В.6; интерполяция запрещена.")
+        key = 'Rp_stat' if self.statistical_control else 'Rp_nonstat'
+        return TABLE_B6_RP[self.Run][key]
 
     @property
     def Rlp(self) -> float:
-        """Расчетное сопротивление местному смятию в цилиндрических шарнирах Rlp = 0.5 * Ry, МПа."""
-        return round(0.50 * self.Ry, 1)
+        """Табличное сопротивление местному смятию с учетом gamma_c."""
+        return round(self.Rlp_base * self.gamma_c, 1)
+
+    @property
+    def Rlp_base(self) -> float:
+        if self.Run not in TABLE_B6_RP:
+            raise ValueError(f"Run={self.Run} отсутствует в таблице В.6; интерполяция запрещена.")
+        key = 'Rlp_stat' if self.statistical_control else 'Rlp_nonstat'
+        return TABLE_B6_RP[self.Run][key]
 
     @property
     def Rcd(self) -> float:
-        """Расчетное сопротивление диаметральному сжатию катков Rcd = 0.025 * Ru, МПа."""
-        return round(0.025 * self.Ru, 1)
+        """Табличное сопротивление диаметральному сжатию катков с учетом gamma_c."""
+        return round(self.Rcd_base * self.gamma_c, 1)
+
+    @property
+    def Rcd_base(self) -> float:
+        if self.Run not in TABLE_B6_RP:
+            raise ValueError(f"Run={self.Run} отсутствует в таблице В.6; интерполяция запрещена.")
+        key = 'Rcd_stat' if self.statistical_control else 'Rcd_nonstat'
+        return TABLE_B6_RP[self.Run][key]
 
     # --------------------------------------------------------------------------
     # Физические свойства
@@ -348,7 +450,7 @@ class StructuralSteel:
 
     @property
     def G(self) -> float:
-        """Модуль сдвига стали G = 84 000 МПа (п. 5.1)."""
+        """Модуль сдвига стали G = 79 000 МПа (п. 5.1)."""
         return STEEL_G
 
     @property
@@ -371,9 +473,10 @@ class StructuralSteel:
     # --------------------------------------------------------------------------
     def get_diagram(
         self,
-        model: str = 'prandtl',
+        model: str = 'OACD',
         n_points: int = 100,
-        eps_max: float = 0.025
+        eps_max: Optional[float] = None,
+        signed: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Построение диаграммы деформирования стали sigma - eps (п. 4.2.7 и Таблица В.9).
@@ -388,31 +491,84 @@ class StructuralSteel:
         eps_max : float
             Максимальная деформация (по умолчанию 0.025 = 2.5%).
         """
-        eps_y = self.eps_y
-        eps_arr = np.linspace(0.0, eps_max, n_points)
-        sigma_arr = np.zeros_like(eps_arr)
+        if not isinstance(n_points, (int, np.integer)) or n_points <= 0:
+            raise ValueError("n_points должен быть положительным целым числом.")
+        points = self.get_diagram_points(model, signed=signed)
+        selected = list(points.values())
+        if eps_max is not None:
+            if not np.isfinite(eps_max) or eps_max <= 0:
+                raise ValueError("eps_max должен быть положительным и конечным.")
+            if not signed:
+                selected[-1] = (float(eps_max), selected[-1][1])
+        if signed:
+            positive = selected
+            negative = [(-epsilon, -sigma) for epsilon, sigma in reversed(positive[1:])]
+            return self._sample_segments(negative + positive, n_points)
+        return self._sample_segments(selected, n_points)
 
-        if model.lower() == 'prandtl':
-            sigma_arr = np.piecewise(
-                eps_arr,
-                [eps_arr <= eps_y, eps_arr > eps_y],
-                [lambda e: self.E * e, lambda e: self.Ry]
-            )
-        elif model.lower() == 'hardening':
-            # Линейное упрочнение: площадка текучести до eps_t = 2.5 * eps_y, далее подъем до Ru
-            eps_t = 2.5 * eps_y
-            E_hard = (self.Ru - self.Ry) / max(eps_max - eps_t, 1e-4)
-            for i, e in enumerate(eps_arr):
-                if e <= eps_y:
-                    sigma_arr[i] = self.E * e
-                elif e <= eps_t:
-                    sigma_arr[i] = self.Ry
-                else:
-                    sigma_arr[i] = min(self.Ry + E_hard * (e - eps_t), self.Ru)
-        else:
-            raise ValueError(f"Неизвестная модель: '{model}'. Выберите 'prandtl' или 'hardening'.")
+    @staticmethod
+    def _sample_segments(points: List[Tuple[float, float]], n_points: int) -> Tuple[np.ndarray, np.ndarray]:
+        if n_points == 1:
+            return np.array([points[0][0]]), np.array([points[0][1]])
+        lengths = np.array([abs(points[i + 1][0] - points[i][0]) for i in range(len(points) - 1)], dtype=float)
+        if not np.any(lengths):
+            lengths[:] = 1.0
+        intervals = np.maximum(1, np.floor((n_points - 1) * lengths / lengths.sum()).astype(int))
+        while intervals.sum() < n_points - 1:
+            residual = (n_points - 1) * lengths / lengths.sum() - intervals
+            intervals[int(np.argmax(residual))] += 1
+        while intervals.sum() > n_points - 1:
+            candidates = np.flatnonzero(intervals > 1)
+            if not len(candidates):
+                break
+            residual = intervals - (n_points - 1) * lengths / lengths.sum()
+            intervals[candidates[int(np.argmax(residual[candidates]))]] -= 1
+        eps_parts, sig_parts = [], []
+        for index, n_intervals in enumerate(intervals):
+            e0, s0 = points[index]
+            e1, s1 = points[index + 1]
+            eps = np.linspace(e0, e1, int(n_intervals) + 1)
+            sig = np.linspace(s0, s1, int(n_intervals) + 1)
+            if index:
+                eps, sig = eps[1:], sig[1:]
+            eps_parts.append(eps)
+            sig_parts.append(sig)
+        return np.concatenate(eps_parts), np.concatenate(sig_parts)
 
-        return eps_arr, sigma_arr
+    def _b9_group(self) -> int:
+        for group, grades in TABLE_B9_GROUPS.items():
+            if self.grade in grades:
+                return group
+        raise ValueError(f"Для стали {self.grade} отсутствует источник диаграммы в таблице В.9.")
+
+    def get_diagram_points(self, model: str = 'OACD', signed: bool = False) -> Dict[str, Tuple[float, float]]:
+        model_clean = str(model).upper()
+        aliases = {'PRANDTL': 'OACD', 'HARDENING': 'OACDEF'}
+        model_clean = aliases.get(model_clean, model_clean)
+        if model_clean not in {'OBD', 'OACD', 'OACDEF'}:
+            raise ValueError("model должен быть одним из OBD, OACD или OACDEF.")
+        group = self._b9_group()
+        p = TABLE_B9[group]
+        eps_y = self.Ryn / self.E
+        sign = -1.0 if signed else 1.0
+        full = {
+            'O': (0.0, 0.0),
+            'A': (0.8 * eps_y if group in {1, 2} else 0.9 * eps_y, (0.8 if group in {1, 2} else 0.9) * self.Ryn),
+            'B': (1.7 * eps_y, self.Ryn),
+            'C': (1.7 * eps_y, self.Ryn),
+            'D': (p['eps_st'] * eps_y, self.Ryn),
+            'E': (p['eps_u'] * eps_y, p['sig_u'] * self.Ryn),
+            'F': (p['eps_t'] * eps_y, p['sig_t'] * self.Ryn),
+        }
+        # In the source figure OACD ends at the ultimate point D. OACDEF
+        # extends it through the post-yield points E and F; OBD is the compact
+        # three-node variant.  Keep only labels selected by the variant.
+        labels = {
+            'OBD': ('O', 'B', 'D'),
+            'OACD': ('O', 'A', 'C', 'D'),
+            'OACDEF': ('O', 'A', 'C', 'D', 'E', 'F'),
+        }[model_clean]
+        return {label: (sign * full[label][0], sign * full[label][1]) for label in labels}
 
     def to_dict(self) -> Dict[str, Union[str, float, bool]]:
         """Сводный словарь параметров стали."""
@@ -429,8 +585,11 @@ class StructuralSteel:
             'Ry_design_MPa': self.Ry,
             'Ru_design_MPa': self.Ru,
             'Rs_shear_MPa': self.Rs,
+            'Rp_base_MPa': self.Rp_base,
             'Rp_bearing_MPa': self.Rp,
+            'Rlp_base_MPa': self.Rlp_base,
             'Rlp_pin_MPa': self.Rlp,
+            'Rcd_base_MPa': self.Rcd_base,
             'Rcd_roller_MPa': self.Rcd,
             'E_MPa': self.E,
             'G_MPa': self.G,
@@ -530,17 +689,30 @@ class SteelBolt:
         self,
         grade: str = '8.8',
         diameter: int = 20,
-        gamma_b: float = 1.0
+        gamma_b: float = 1.0,
+        gamma_c: float = 1.0,
+        special_support: bool = False,
     ):
         grade_clean = grade.strip()
         if grade_clean not in TABLE_G5_BOLTS:
             raise ValueError(f"Неизвестный класс болта: '{grade}'. Доступные: {list(TABLE_G5_BOLTS.keys())}")
         if diameter not in BOLT_AREAS:
             raise ValueError(f"Неподдерживаемый диаметр болта: {diameter} мм. Доступные: {list(BOLT_AREAS.keys())}")
+        if BOLT_AREAS[diameter].get('special_support_only') and not special_support:
+            raise ValueError(
+                f"Диаметр М{diameter} приведён в таблице Г.9 только для ВЛ/ОРУ; "
+                "укажите special_support=True."
+            )
+        if not np.isfinite(gamma_b) or gamma_b <= 0 or gamma_b > 1.0:
+            raise ValueError("gamma_b должен быть в диапазоне (0, 1].")
+        if not np.isfinite(gamma_c) or gamma_c <= 0:
+            raise ValueError("gamma_c должна быть положительной и конечной.")
 
         self.grade = grade_clean
         self.diameter = diameter
         self.gamma_b = float(gamma_b)
+        self.gamma_c = float(gamma_c)
+        self.special_support = bool(special_support)
 
         self._prop = TABLE_G5_BOLTS[self.grade]
         self._geo = BOLT_AREAS[self.diameter]
@@ -579,7 +751,9 @@ class SteelBolt:
         """
         Несущая способность одного болта на срез Nbs = Rbs * A * n_s * gamma_b, кН (п. 14.2.5).
         """
-        return round(self.Rbs * self.A * n_shear_planes * self.gamma_b / 1000.0, 2)
+        if not isinstance(n_shear_planes, (int, np.integer)) or n_shear_planes <= 0:
+            raise ValueError("Число плоскостей среза должно быть положительным целым числом.")
+        return self.Rbs * self.A * n_shear_planes * self.gamma_b * self.gamma_c / 1000.0
 
     def tension_capacity(self) -> Optional[float]:
         """
@@ -587,7 +761,7 @@ class SteelBolt:
         """
         if self.Rbt is None:
             return None
-        return round(self.Rbt * self.Abn * self.gamma_b / 1000.0, 2)
+        return self.Rbt * self.Abn * self.gamma_c / 1000.0
 
     def to_dict(self) -> Dict[str, Union[str, float, None]]:
         """Сводный словарь параметров болта."""
@@ -595,6 +769,8 @@ class SteelBolt:
             'grade': self.grade,
             'diameter_mm': self.diameter,
             'gamma_b': self.gamma_b,
+            'gamma_c': self.gamma_c,
+            'special_support': self.special_support,
             'Rbun_MPa': self.Rbun,
             'Rbyn_MPa': self.Rbyn,
             'Rbs_MPa': self.Rbs,
@@ -663,6 +839,7 @@ class SteelBolt:
 
 def list_steel_grades(profile_type: str = 'shapes') -> List[str]:
     """Список поддерживаемых марок стали для указанного вида проката."""
+    profile_type = profile_type.lower()
     if profile_type == 'shapes':
         return list(TABLE_B5_SHAPES.keys())
     elif profile_type in ['plates', 'tubes']:
@@ -670,6 +847,11 @@ def list_steel_grades(profile_type: str = 'shapes') -> List[str]:
     elif profile_type in ['beams_parallel', 'beams']:
         return list(TABLE_B4_PARALLEL_BEAMS.keys())
     return list(TABLE_B5_SHAPES.keys())
+
+
+def list_gamma_c_options() -> List[Tuple[str, float]]:
+    """Каталог коэффициентов gamma_c из таблицы 1 СП 16."""
+    return list(TABLE_1_GAMMA_C.items())
 
 def generate_steel_code_snippet(steel: StructuralSteel, bolt: Optional[SteelBolt] = None) -> str:
     """Генерация готового кода для вставки в расчетный блокнот."""
@@ -699,7 +881,9 @@ E  = steel.E    # {steel.E:,.0f} МПа (модуль упругости)
 bolt = SteelBolt(
     grade='{bolt.grade}',
     diameter={bolt.diameter},
-    gamma_b={bolt.gamma_b}
+    gamma_b={bolt.gamma_b},
+    gamma_c={bolt.gamma_c},
+    special_support={bolt.special_support}
 )
 Rbs = bolt.Rbs   # {bolt.Rbs} МПа (расчетное сопротивление срезу)
 Nbs = bolt.shear_capacity(n_shear_planes=1)  # {bolt.shear_capacity(1)} кН

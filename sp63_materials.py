@@ -19,7 +19,7 @@ import numpy as np
 
 # Классы бетона по прочности на сжатие (п. 6.1.4)
 CONCRETE_GRADES = [
-    'B3.5', 'B5', 'B7.5', 'B10', 'B12.5', 'B15', 'B20', 'B25',
+    'B1.5', 'B2', 'B2.5', 'B3.5', 'B5', 'B7.5', 'B10', 'B12.5', 'B15', 'B20', 'B25',
     'B30', 'B35', 'B40', 'B45', 'B50', 'B55', 'B60', 'B70',
     'B80', 'B90', 'B100'
 ]
@@ -87,9 +87,18 @@ TABLE_6_12_PHI_CR = {
 
 # Таблица 6.10: Относительные деформации бетона при продолжительном действии нагрузки
 TABLE_6_10_DEFORMATIONS = {
-    '>75%':   {'eps_b0': 0.0030, 'eps_b2': 0.0042, 'eps_bt0': 0.00021, 'eps_bt2': 0.00027},
-    '40-75%': {'eps_b0': 0.0034, 'eps_b2': 0.0048, 'eps_bt0': 0.00024, 'eps_bt2': 0.00031},
-    '<40%':   {'eps_b0': 0.0040, 'eps_b2': 0.0056, 'eps_bt0': 0.00028, 'eps_bt2': 0.00036}
+    '>75%': {
+        'eps_b0': 0.0030, 'eps_b2': 0.0042, 'eps_b1_red': 0.0024,
+        'eps_bt0': 0.00021, 'eps_bt2': 0.00027, 'eps_bt1_red': 0.00019,
+    },
+    '40-75%': {
+        'eps_b0': 0.0034, 'eps_b2': 0.0048, 'eps_b1_red': 0.0028,
+        'eps_bt0': 0.00024, 'eps_bt2': 0.00031, 'eps_bt1_red': 0.00022,
+    },
+    '<40%': {
+        'eps_b0': 0.0040, 'eps_b2': 0.0056, 'eps_b1_red': 0.0034,
+        'eps_bt0': 0.00028, 'eps_bt2': 0.00036, 'eps_bt1_red': 0.00026,
+    },
 }
 
 # Таблица 6.13: Нормативные сопротивления арматуры Rsn, МПа (и II группа ПС: Rs,ser = Rsn)
@@ -102,8 +111,19 @@ TABLE_6_13_RSN = {
     'A1000': 1000.0,
     'B500': 500.0,
     'Bp500': 500.0,
+    'Bp1200': 1200.0,
+    'Bp1300': 1300.0,
+    'Bp1400': 1400.0,
+    'Bp1500': 1500.0,
+    'Bp1600': 1600.0,
     'K1400': 1400.0,
+    'K1450': 1450.0,
     'K1500': 1500.0,
+    'K1550': 1550.0,
+    'K1650': 1650.0,
+    'K1750': 1740.0,
+    'K1850': 1840.0,
+    'K1900': 1920.0,
 }
 
 # Таблица 6.14: Расчетные сопротивления арматуры Rs, Rsc, МПа (I группа ПС)
@@ -118,8 +138,19 @@ TABLE_6_14_REBAR = {
     'A1000': {'Rs': 870.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
     'B500':  {'Rs': 415.0, 'Rsc_short': 380.0, 'Rsc_long': 415.0},
     'Bp500': {'Rs': 415.0, 'Rsc_short': 360.0, 'Rsc_long': 390.0},
+    'Bp1200': {'Rs': 1000.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'Bp1300': {'Rs': 1100.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'Bp1400': {'Rs': 1170.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'Bp1500': {'Rs': 1250.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'Bp1600': {'Rs': 1340.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
     'K1400': {'Rs': 1170.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'K1450': {'Rs': 1200.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
     'K1500': {'Rs': 1250.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'K1550': {'Rs': 1350.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'K1650': {'Rs': 1435.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'K1750': {'Rs': 1515.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'K1850': {'Rs': 1600.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
+    'K1900': {'Rs': 1670.0, 'Rsc_short': 400.0, 'Rsc_long': 500.0},
 }
 
 # Таблица 6.15: Поперечная арматура Rsw, МПа
@@ -128,6 +159,39 @@ TABLE_6_15_RSW = {
     'A400': 280.0,
     'A500': 300.0,
     'B500': 300.0,
+}
+
+# Rows of tables 6.7 and 6.8 that are not applicable to heavy concrete.  The
+# main tables above deliberately remain the heavy/fine-grained/tensioning
+# profile; these small catalogs prevent a light or cellular grade from being
+# silently substituted with a heavy-concrete row.
+TABLE_6_7_LIGHT_RBN = {
+    'B2.5': 1.9, 'B3.5': 2.7, 'B5': 3.5, 'B7.5': 5.5, 'B10': 7.5,
+    'B12.5': 9.5, 'B15': 11.0, 'B20': 15.0, 'B25': 18.5, 'B30': 22.0,
+    'B35': 25.5, 'B40': 29.0,
+}
+TABLE_6_7_LIGHT_RBTN = {
+    'B2.5': 0.31, 'B3.5': 0.39, 'B5': 0.55, 'B7.5': 0.70, 'B10': 0.85,
+    'B12.5': 1.00, 'B15': 1.10, 'B20': 1.35, 'B25': 1.55, 'B30': 1.75,
+    'B35': 1.95, 'B40': 2.10,
+}
+TABLE_6_7_CELLULAR_RBN = {
+    'B1.5': 0.95, 'B2': 1.3, 'B2.5': 1.6, 'B3.5': 2.2, 'B5': 3.1,
+    'B7.5': 4.6, 'B10': 6.0, 'B12.5': 7.0, 'B15': 7.7,
+}
+TABLE_6_7_CELLULAR_RBTN = {
+    'B1.5': 0.09, 'B2': 0.12, 'B2.5': 0.14, 'B3.5': 0.18, 'B5': 0.24,
+    'B7.5': 0.28, 'B10': 0.39, 'B12.5': 0.44, 'B15': 0.46,
+}
+
+CONCRETE_TYPE_ALIASES = {
+    'heavy': 'heavy', 'тяжелый': 'heavy', 'тяжёлый': 'heavy',
+    'fine_grained': 'fine_grained', 'fine-grained': 'fine_grained',
+    'мелкозернистый': 'fine_grained',
+    'tensioning': 'tensioning', 'напрягающий': 'tensioning',
+    'light': 'light', 'легкий': 'light', 'лёгкий': 'light',
+    'porous': 'porous', 'поризованный': 'porous',
+    'cellular': 'cellular', 'ячеистый': 'cellular',
 }
 
 
@@ -176,23 +240,56 @@ class Concrete:
         gamma_b3: float = 1.0,
         gamma_b4: float = 1.0,
         gamma_b5: float = 1.0,
+        density: Optional[float] = None,
+        curing: Optional[str] = None,
+        cellular_humidity_percent: Optional[float] = None,
+        is_tensioning: bool = False,
     ):
-        grade_clean = grade.strip().upper()
+        grade_clean = grade.strip().upper().replace(',', '.')
         if not grade_clean.startswith('B'):
             grade_clean = 'B' + grade_clean
-        if grade_clean not in TABLE_6_8_RB:
+        concrete_type_clean = CONCRETE_TYPE_ALIASES.get(
+            str(concrete_type).strip().lower(), str(concrete_type).strip().lower()
+        )
+        if concrete_type_clean not in {'heavy', 'fine_grained', 'tensioning', 'light', 'porous', 'cellular'}:
+            raise ValueError(f"Неизвестный вид бетона: '{concrete_type}'.")
+        if grade_clean not in CONCRETE_GRADES:
             raise ValueError(f"Неизвестный класс бетона: '{grade}'. Доступные: {CONCRETE_GRADES}")
+        if concrete_type_clean in {'heavy', 'fine_grained', 'tensioning'} and grade_clean not in TABLE_6_8_RB:
+            raise ValueError(f"Класс {grade_clean} отсутствует в таблицах 6.7/6.8 для вида бетона '{concrete_type_clean}'.")
+        variant_catalog = {
+            'light': TABLE_6_7_LIGHT_RBN,
+            'porous': TABLE_6_7_LIGHT_RBN,
+            'cellular': TABLE_6_7_CELLULAR_RBN,
+        }
+        if concrete_type_clean in variant_catalog and grade_clean not in variant_catalog[concrete_type_clean]:
+            raise ValueError(f"Класс {grade_clean} отсутствует в таблицах для вида бетона '{concrete_type_clean}'.")
+        if concrete_type_clean in {'light', 'porous'} and density is None:
+            raise ValueError("Для легкого/поризованного бетона требуется density (плотность).")
+        if concrete_type_clean == 'cellular' and (density is None or cellular_humidity_percent is None):
+            raise ValueError("Для ячеистого бетона требуются density и cellular_humidity_percent.")
+        if density is not None and (not np.isfinite(density) or density <= 0):
+            raise ValueError("density должна быть положительной и конечной.")
+        if cellular_humidity_percent is not None and not np.isfinite(cellular_humidity_percent):
+            raise ValueError("cellular_humidity_percent должна быть конечной.")
 
         self.grade = grade_clean
-        self.concrete_type = concrete_type
+        self.concrete_type = concrete_type_clean
+        self.density = None if density is None else float(density)
+        self.curing = None if curing is None else str(curing).strip().lower()
+        self.cellular_humidity_percent = (
+            None if cellular_humidity_percent is None else float(cellular_humidity_percent)
+        )
+        self.is_tensioning = bool(is_tensioning or concrete_type_clean == 'tensioning')
         if humidity not in ['<40%', '40-75%', '>75%']:
             raise ValueError("humidity должен быть одним из: '<40%', '40-75%', '>75%'")
         self.humidity = humidity
         self.long_term = long_term
 
-        # Автоматическое определение gamma_b1 при None
+        # Автоматическое определение gamma_b1 при None.  Для ячеистого и
+        # поризованного бетона СП 63 задаёт 0.85 при длительной нагрузке.
         if gamma_b1 is None:
-            self.gamma_b1 = 0.90 if long_term else 1.00
+            self.gamma_b1 = (0.85 if concrete_type_clean in {'cellular', 'porous'} else 0.90) if long_term else 1.00
         else:
             self.gamma_b1 = float(gamma_b1)
 
@@ -200,6 +297,14 @@ class Concrete:
         self.gamma_b3 = float(gamma_b3)
         self.gamma_b4 = float(gamma_b4)
         self.gamma_b5 = float(gamma_b5)
+        for name in ('gamma_b1', 'gamma_b2', 'gamma_b3', 'gamma_b4', 'gamma_b5'):
+            value = getattr(self, name)
+            if not np.isfinite(value) or value <= 0:
+                raise ValueError(f"{name} должен быть положительным и конечным.")
+        if self.gamma_b5 > 1.0:
+            raise ValueError("gamma_b5 не может быть больше 1.0.")
+        if self.concrete_type == 'cellular' and self.cellular_humidity_percent < 0:
+            raise ValueError("cellular_humidity_percent не может быть отрицательной.")
 
     @property
     def gamma_b_total(self) -> float:
@@ -212,15 +317,33 @@ class Concrete:
         return self.gamma_b1 * self.gamma_b2 * self.gamma_b4 * self.gamma_b5
 
     # Базовые нормативные и расчетные характеристики
+    def _catalog_values(self) -> Tuple[Dict[str, float], Dict[str, float]]:
+        if self.concrete_type in {'heavy', 'fine_grained', 'tensioning'}:
+            return TABLE_6_7_RBN, TABLE_6_7_RBTN
+        if self.concrete_type == 'cellular':
+            return TABLE_6_7_CELLULAR_RBN, TABLE_6_7_CELLULAR_RBTN
+        return TABLE_6_7_LIGHT_RBN, TABLE_6_7_LIGHT_RBTN
+
+    def _type_factor_rbt(self) -> float:
+        if self.concrete_type == 'porous':
+            factor = 0.7
+        elif self.concrete_type in {'light', 'fine_grained'}:
+            factor = 0.8 if self.concrete_type == 'light' else 0.8
+        else:
+            factor = 1.0
+        if self.is_tensioning:
+            factor *= 1.2
+        return factor
+
     @property
     def Rbn(self) -> float:
         """Нормативное сопротивление осевому сжатию Rbn, МПа (табл. 6.7)."""
-        return TABLE_6_7_RBN[self.grade]
+        return self._catalog_values()[0][self.grade]
 
     @property
     def Rbtn(self) -> float:
         """Нормативное сопротивление осевому растяжению Rbtn, МПа (табл. 6.7)."""
-        return TABLE_6_7_RBTN[self.grade]
+        return self._catalog_values()[1][self.grade]
 
     @property
     def Rb_ser(self) -> float:
@@ -235,33 +358,61 @@ class Concrete:
     @property
     def Rb_base(self) -> float:
         """Базовое расчетное сопротивление сжатию Rb без коэффициентов gamma_bi, МПа (табл. 6.8)."""
-        return TABLE_6_8_RB[self.grade]
+        if self.concrete_type in {'heavy', 'fine_grained', 'tensioning'}:
+            return TABLE_6_8_RB[self.grade]
+        if self.concrete_type == 'cellular':
+            # Table 6.8 values at 10% moisture; higher moisture is applied
+            # through gamma_b4 below, as prescribed by 6.1.12(g).
+            return self.Rbn * (TABLE_6_8_RB[self.grade] / TABLE_6_7_RBN[self.grade]) if self.grade in TABLE_6_8_RB else self.Rbn
+        return self.Rbn * (TABLE_6_8_RB[self.grade] / TABLE_6_7_RBN[self.grade]) if self.grade in TABLE_6_8_RB else self.Rbn
 
     @property
     def Rbt_base(self) -> float:
         """Базовое расчетное сопротивление растяжению Rbt без коэффициентов gamma_bi, МПа (табл. 6.8)."""
-        return TABLE_6_8_RBT[self.grade]
+        if self.concrete_type in {'heavy', 'fine_grained', 'tensioning'}:
+            base = TABLE_6_8_RBT[self.grade]
+        elif self.grade in TABLE_6_8_RBT and self.grade in TABLE_6_7_RBTN:
+            base = self.Rbtn * (TABLE_6_8_RBT[self.grade] / TABLE_6_7_RBTN[self.grade])
+        else:
+            base = self.Rbtn
+        return base * self._type_factor_rbt()
 
     @property
     def Rb(self) -> float:
         """Расчетное сопротивление сжатию Rb с учетом коэффициентов gamma_bi, МПа."""
-        return round(self.Rb_base * self.gamma_b_total, 3)
+        return round(self.Rb_base * self.gamma_b_total * self._b4_factor, 6)
 
     @property
     def Rbt(self) -> float:
         """Расчетное сопротивление растяжению Rbt с учетом коэффициентов gamma_bi, МПа."""
-        return round(self.Rbt_base * self.gamma_bt_total, 3)
+        return round(self.Rbt_base * self.gamma_bt_total, 6)
 
     @property
     def Eb(self) -> float:
         """Начальный модуль упругости бетона Eb, МПа (табл. 6.11)."""
-        return TABLE_6_11_EB[self.grade] * 1000.0
+        if self.grade not in TABLE_6_11_EB:
+            raise ValueError(f"Для класса {self.grade} нет начального модуля в таблице 6.11.")
+        value = TABLE_6_11_EB[self.grade] * 1000.0
+        if self.concrete_type == 'fine_grained' and self.curing in {'heat_treated', 'thermal', 'a'}:
+            value *= 0.89
+        if self.concrete_type == 'cellular' and self.curing in {'non_autoclaved', 'non-autoclave'}:
+            value *= 0.8
+        if self.concrete_type == 'light' and self.density is not None:
+            value *= max(0.0, self.density / 2200.0) ** 2
+        return value
 
     @property
     def phi_b_cr(self) -> float:
         """Коэффициент ползучести бетона phi_b,cr (табл. 6.12)."""
+        if self.concrete_type == 'cellular':
+            raise ValueError("Для ячеистого бетона коэффициент ползучести принимается по специальным указаниям.")
         hum_dict = TABLE_6_12_PHI_CR[self.humidity]
-        return hum_dict.get(self.grade, hum_dict['B60'])
+        if self.grade not in hum_dict:
+            raise ValueError(f"Для класса {self.grade} нет коэффициента ползучести в таблице 6.12.")
+        value = hum_dict[self.grade]
+        if self.concrete_type == 'light':
+            value *= (self.density / 2200.0) ** 2
+        return value
 
     @property
     def Eb_red(self) -> float:
@@ -274,6 +425,17 @@ class Concrete:
             return round(self.Eb / (1.0 + self.phi_b_cr), 1)
         return self.Eb
 
+    @property
+    def _b4_factor(self) -> float:
+        if self.concrete_type != 'cellular':
+            return 1.0
+        humidity = self.cellular_humidity_percent
+        if humidity <= 10.0:
+            return 1.0
+        if humidity >= 25.0:
+            return 0.8
+        return 1.0 - (humidity - 10.0) * 0.2 / 15.0
+
     # Предельные относительные деформации бетона
     @property
     def eps_b0(self) -> float:
@@ -281,8 +443,19 @@ class Concrete:
         Относительная деформация при достижении максимального напряжения сжатия Rb (п. 6.1.14 / 6.1.20).
         """
         if self.long_term:
-            return TABLE_6_10_DEFORMATIONS[self.humidity]['eps_b0']
-        return 0.0020
+            value = TABLE_6_10_DEFORMATIONS[self.humidity]['eps_b0']
+        else:
+            value = 0.0020
+        return value * self.gamma_b5 * self._deformation_factor
+
+    @property
+    def eps_b1_red(self) -> float:
+        """Относительная деформация на переходе двухлинейной диаграммы."""
+        if self.long_term:
+            value = TABLE_6_10_DEFORMATIONS[self.humidity]['eps_b1_red']
+        else:
+            value = 0.0015
+        return value * self.gamma_b5 * self._deformation_factor
 
     @property
     def eps_b2(self) -> float:
@@ -290,27 +463,52 @@ class Concrete:
         Предельная относительная деформация бетона при осевом сжатии (п. 6.1.14 / 6.1.20).
         """
         if self.long_term:
-            return TABLE_6_10_DEFORMATIONS[self.humidity]['eps_b2']
-        # Кратковременное действие
-        grade_num = float(self.grade.replace('B', ''))
-        if grade_num <= 60:
-            return 0.0035
-        # Для B70..B100 интерполяция от 0.0033 (B70) до 0.0028 (B100)
-        return round(0.0033 - (grade_num - 70.0) / 30.0 * (0.0033 - 0.0028), 5)
+            value = TABLE_6_10_DEFORMATIONS[self.humidity]['eps_b2']
+            grade_num = float(self.grade.replace('B', ''))
+            if grade_num >= 70.0:
+                value *= (270.0 - grade_num) / 210.0
+        else:
+            # Кратковременное действие: отдельное правило для B70--B100.
+            grade_num = float(self.grade.replace('B', ''))
+            if grade_num <= 60:
+                value = 0.0035
+            else:
+                value = 0.0033 - (grade_num - 70.0) / 30.0 * (0.0033 - 0.0028)
+        return value * self.gamma_b5 * self._deformation_factor
 
     @property
     def eps_bt0(self) -> float:
         """Относительная деформация при достижении Rbt при растяжении (п. 6.1.14 / 6.1.22)."""
         if self.long_term:
-            return TABLE_6_10_DEFORMATIONS[self.humidity]['eps_bt0']
-        return 0.00010
+            value = TABLE_6_10_DEFORMATIONS[self.humidity]['eps_bt0']
+        else:
+            value = 0.00010
+        return value * self.gamma_b5 * self._deformation_factor
+
+    @property
+    def eps_bt1_red(self) -> float:
+        """Относительная деформация на переходе двухлинейной диаграммы растяжения."""
+        if self.long_term:
+            value = TABLE_6_10_DEFORMATIONS[self.humidity]['eps_bt1_red']
+        else:
+            value = 0.00008
+        return value * self.gamma_b5 * self._deformation_factor
 
     @property
     def eps_bt2(self) -> float:
         """Предельная относительная деформация бетона при осевом растяжении (п. 6.1.14 / 6.1.22)."""
         if self.long_term:
-            return TABLE_6_10_DEFORMATIONS[self.humidity]['eps_bt2']
-        return 0.00015
+            value = TABLE_6_10_DEFORMATIONS[self.humidity]['eps_bt2']
+        else:
+            value = 0.00015
+        # The high-strength note to table 6.10 applies to compression only.
+        return value * self.gamma_b5 * self._deformation_factor
+
+    @property
+    def _deformation_factor(self) -> float:
+        if self.concrete_type == 'light' and self.density is not None:
+            return max(0.7, 0.4 + 0.6 * self.density / 2200.0)
+        return 1.0
 
     # --------------------------------------------------------------------------
     # Деформационные диаграммы
@@ -320,7 +518,8 @@ class Concrete:
         self,
         model: str = 'bilinear',
         state: str = 'compression',
-        n_points: int = 100
+        n_points: int = 100,
+        signed: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Построение деформационной диаграммы состояния бетона sigma - eps.
@@ -341,70 +540,137 @@ class Concrete:
         (eps_arr, sigma_arr) : Tuple[np.ndarray, np.ndarray]
             Массивы относительных деформаций и напряжений (МПа).
         """
-        is_comp = (state.lower() == 'compression')
-        R = self.Rb if is_comp else self.Rbt
-        eps0 = self.eps_b0 if is_comp else self.eps_bt0
-        eps2 = self.eps_b2 if is_comp else self.eps_bt2
-        E = self.Eb_red
-
+        self._validate_diagram_inputs(model, state, n_points)
+        points = self.get_diagram_points(model, state, signed=signed)
         model_clean = model.lower()
+        ordered = list(points.values())
 
-        if model_clean == 'bilinear':
-            # Двухлинейная диаграмма (п. 6.1.21):
-            # 0 <= eps <= eps0: sigma = (R / eps0) * eps
-            # eps0 < eps <= eps2: sigma = R
-            eps_arr = np.linspace(0.0, eps2, n_points)
-            sigma_arr = np.piecewise(
-                eps_arr,
-                [eps_arr <= eps0, eps_arr > eps0],
-                [lambda e: (R / eps0) * e, lambda e: R]
-            )
+        if model_clean == 'nonlinear':
+            if state.lower() == 'compression':
+                peak = points['peak']
+                end = points['eta_085']
+                n_rise = max(2, int(round(n_points * 0.72)))
+                n_desc = max(2, n_points - n_rise + 1)
+                rise = self._sample_appendix_g_branch(0.0, 1.0, n_rise, signed)
+                desc = self._sample_appendix_g_branch(1.0, 0.85, n_desc, signed, descending=True)
+                eps_arr = np.concatenate((rise[0][:-1], desc[0]))
+                sigma_arr = np.concatenate((rise[1][:-1], desc[1]))
+                eps_arr[-1], sigma_arr[-1] = end
+                eps_arr[np.argmin(np.abs(eps_arr - peak[0]))] = peak[0]
+                sigma_arr[np.argmin(np.abs(sigma_arr - peak[1]))] = peak[1]
+                return eps_arr, sigma_arr
+            # The tensile Appendix G diagram terminates at the normative
+            # failure strain after the peak; its post-peak branch is a plateau.
+            return self._sample_segments(ordered, n_points)
 
-        elif model_clean == 'trilinear':
-            # Трехлинейная диаграмма (п. 6.1.20):
-            # Точка 1: sigma1 = 0.6 * R, eps1 = 0.6 * R / (0.85 * E)
-            # Точка 0: sigma0 = R, eps0
-            # Точка 2: sigma2 = R, eps2
-            sigma1 = 0.6 * R
-            E1 = 0.85 * E
-            eps1 = sigma1 / E1
-            if eps1 >= eps0:
-                eps1 = 0.6 * eps0
+        return self._sample_segments(ordered, n_points)
 
-            eps_arr = np.linspace(0.0, eps2, n_points)
-            sigma_arr = np.zeros_like(eps_arr)
-            for i, e in enumerate(eps_arr):
-                if e <= eps1:
-                    sigma_arr[i] = (sigma1 / eps1) * e
-                elif e <= eps0:
-                    sigma_arr[i] = sigma1 + (R - sigma1) * (e - eps1) / (eps0 - eps1)
-                else:
-                    sigma_arr[i] = R
+    def _validate_diagram_inputs(self, model: str, state: str, n_points: int) -> None:
+        if not isinstance(n_points, (int, np.integer)) or n_points <= 0:
+            raise ValueError("n_points должен быть положительным целым числом.")
+        if str(state).lower() not in {'compression', 'tension'}:
+            raise ValueError("state должен быть 'compression' или 'tension'.")
+        if str(model).lower() not in {'bilinear', 'trilinear', 'nonlinear'}:
+            raise ValueError("Неизвестная model диаграммы бетона.")
 
-        elif model_clean == 'nonlinear':
-            # Криволинейная нелинейная диаграмма (Приложение Г, формулы Г.1-Г.4)
-            # sigma = (1 - eta * omega) * Eb * eps
-            # где omega = eps / eps0, а на нисходящей ветке до eps2:
-            eps_arr = np.linspace(0.0, eps2, n_points)
-            sigma_arr = np.zeros_like(eps_arr)
-            for i, e in enumerate(eps_arr):
-                if e <= eps0:
-                    # Восходящая ветвь: плавная квадратично-дробная аппроксимация
-                    eta = e / eps0
-                    k = 1.1 * (E * eps0) / max(R, 0.01)
-                    denom = 1.0 + (k - 2.0) * eta
-                    if abs(denom) < 1e-4:
-                        denom = 1e-4
-                    sigma_arr[i] = R * (k * eta - eta**2) / denom
-                else:
-                    # Горизонтальная площадка до предельных деформаций eps2
-                    sigma_arr[i] = R
-            sigma_arr = np.clip(sigma_arr, 0.0, R)
+    @staticmethod
+    def _sample_segments(points: List[Tuple[float, float]], n_points: int) -> Tuple[np.ndarray, np.ndarray]:
+        if n_points == 1:
+            return np.array([points[0][0]]), np.array([points[0][1]])
+        lengths = np.array([abs(points[i + 1][0] - points[i][0]) for i in range(len(points) - 1)], dtype=float)
+        if not np.any(lengths):
+            lengths[:] = 1.0
+        intervals = np.maximum(1, np.floor((n_points - 1) * lengths / lengths.sum()).astype(int))
+        while intervals.sum() < n_points - 1:
+            residual = (n_points - 1) * lengths / lengths.sum() - intervals
+            intervals[int(np.argmax(residual))] += 1
+        while intervals.sum() > n_points - 1:
+            candidates = np.flatnonzero(intervals > 1)
+            if not len(candidates):
+                break
+            residual = intervals - (n_points - 1) * lengths / lengths.sum()
+            intervals[candidates[int(np.argmax(residual[candidates]))]] -= 1
+        eps_parts, sig_parts = [], []
+        for i, n_intervals in enumerate(intervals):
+            e0, s0 = points[i]
+            e1, s1 = points[i + 1]
+            segment_eps = np.linspace(e0, e1, int(n_intervals) + 1)
+            segment_sig = np.linspace(s0, s1, int(n_intervals) + 1)
+            if i:
+                segment_eps, segment_sig = segment_eps[1:], segment_sig[1:]
+            eps_parts.append(segment_eps)
+            sig_parts.append(segment_sig)
+        return np.concatenate(eps_parts), np.concatenate(sig_parts)
 
+    def _appendix_g_parameters(self, state: str) -> Tuple[float, float, float, float]:
+        if state == 'compression':
+            sigma_hat = self.Rb_ser
+            eps_peak = self.eps_b0
+            nu_hat = sigma_hat / max(self.Eb * eps_peak, 1e-12)
+            omega_1 = 0.15
+            nu_0 = 1.0
         else:
-            raise ValueError(f"Неизвестная модель диаграммы: '{model}'. Выберите 'bilinear', 'trilinear' или 'nonlinear'.")
+            sigma_hat = self.Rbt_ser
+            eps_peak = self.eps_bt0
+            nu_hat = 0.5
+            omega_1 = 0.15
+            nu_0 = 1.0
+        return sigma_hat, eps_peak, min(max(nu_hat, 1e-6), 1.0), nu_0
 
-        return eps_arr, sigma_arr
+    def _appendix_g_point(self, eta: float, state: str, signed: bool, descending: bool = False) -> Tuple[float, float]:
+        sigma_abs, _, nu_hat, nu_0 = self._appendix_g_parameters(state)
+        omega_1 = 0.15
+        omega_2 = 1.0 - omega_1
+        root = np.sqrt(max(0.0, 1.0 - omega_1 * eta - omega_2 * eta * eta))
+        if descending:
+            nu = nu_hat - (nu_0 - nu_hat) * root
+            nu = max(abs(nu), 1e-6)
+        else:
+            nu = nu_hat + (1.0 - nu_hat) * root
+        if state == 'compression':
+            sigma_hat = -sigma_abs if signed else sigma_abs
+        else:
+            sigma_hat = sigma_abs
+        return eta * sigma_hat / (self.Eb * nu), eta * sigma_hat
+
+    def _sample_appendix_g_branch(
+        self, eta_start: float, eta_end: float, n_points: int, signed: bool, descending: bool = False
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        eta = np.linspace(eta_start, eta_end, n_points)
+        values = [self._appendix_g_point(float(value), 'compression', signed, descending) for value in eta]
+        return np.array([value[0] for value in values]), np.array([value[1] for value in values])
+
+    def get_diagram_points(self, model: str = 'bilinear', state: str = 'compression', signed: bool = False) -> Dict[str, Tuple[float, float]]:
+        self._validate_diagram_inputs(model, state, 2)
+        model_clean, state_clean = model.lower(), state.lower()
+        is_comp = state_clean == 'compression'
+        R = self.Rb if is_comp else self.Rbt
+        sign = -1.0 if is_comp and signed else 1.0
+        if model_clean == 'bilinear':
+            eps_1 = self.eps_b1_red if is_comp else self.eps_bt1_red
+            eps_2 = self.eps_b2 if is_comp else self.eps_bt2
+            return {
+                'origin': (0.0, 0.0),
+                'plateau_start': (sign * eps_1, sign * R),
+                'plateau_end': (sign * eps_2, sign * R),
+            }
+        if model_clean == 'trilinear':
+            eps_0 = self.eps_b0 if is_comp else self.eps_bt0
+            eps_2 = self.eps_b2 if is_comp else self.eps_bt2
+            transition = (0.6 * R / self.Eb, 0.6 * R)
+            return {
+                'origin': (0.0, 0.0),
+                'transition': (sign * transition[0], sign * transition[1]),
+                'plateau_start': (sign * eps_0, sign * R),
+                'plateau_end': (sign * eps_2, sign * R),
+            }
+        if is_comp:
+            peak = self._appendix_g_point(1.0, 'compression', signed)
+            eta_085 = self._appendix_g_point(0.85, 'compression', signed, descending=True)
+            return {'origin': (0.0, 0.0), 'peak': peak, 'eta_085': eta_085}
+        peak = self._appendix_g_point(1.0, 'tension', signed)
+        failure = (self.eps_bt2, self.Rbt_ser)
+        return {'origin': (0.0, 0.0), 'peak': peak, 'failure': failure}
 
     def to_dict(self) -> Dict[str, Union[str, float, bool]]:
         """Сводный словарь всех характеристик бетона."""
@@ -412,6 +678,10 @@ class Concrete:
             'grade': self.grade,
             'concrete_type': self.concrete_type,
             'humidity': self.humidity,
+            'density_kg_m3': self.density,
+            'curing': self.curing,
+            'cellular_humidity_percent': self.cellular_humidity_percent,
+            'is_tensioning': self.is_tensioning,
             'long_term': self.long_term,
             'gamma_b_total': round(self.gamma_b_total, 3),
             'gamma_b1': self.gamma_b1,
@@ -431,8 +701,10 @@ class Concrete:
             'phi_b_cr': self.phi_b_cr,
             'Eb_red_MPa': self.Eb_red,
             'eps_b0': self.eps_b0,
+            'eps_b1_red': self.eps_b1_red,
             'eps_b2': self.eps_b2,
             'eps_bt0': self.eps_bt0,
+            'eps_bt1_red': self.eps_bt1_red,
             'eps_bt2': self.eps_bt2
         }
 
@@ -520,11 +792,14 @@ class Rebar:
         long_term: bool = True,
         gamma_s: float = 1.0
     ):
-        grade_clean = grade.strip().upper()
-        # Замена кириллического 'А' или 'В' на латинские 'A', 'B' при необходимости
+        grade_clean = grade.strip().upper().replace('ВР', 'BP')
+        # Замена кириллических обозначений и запись Bp в едином виде.
         grade_clean = grade_clean.replace('А', 'A').replace('В', 'B').replace('К', 'K')
+        grade_clean = grade_clean.replace('BP', 'Bp')
         if grade_clean not in TABLE_6_14_REBAR:
             raise ValueError(f"Неизвестный класс арматуры: '{grade}'. Доступные: {list(TABLE_6_14_REBAR.keys())}")
+        if not np.isfinite(gamma_s) or gamma_s <= 0:
+            raise ValueError("gamma_s должен быть положительным и конечным.")
 
         self.grade = grade_clean
         self.long_term = long_term
@@ -565,6 +840,26 @@ class Rebar:
         return TABLE_6_15_RSW.get(self.grade, None)
 
     @property
+    def is_conditional_yield(self) -> bool:
+        """Имеет ли класс условный предел текучести (п. 6.2.11)."""
+        return self.grade not in {'A240', 'A400', 'A500', 'B500', 'Bp500'}
+
+    @property
+    def diagram_kind(self) -> str:
+        """Нормативный тип диаграммы: ``bilinear`` или ``trilinear``."""
+        if self.grade in {'A240', 'A400', 'A500', 'B500', 'Bp500'}:
+            return 'bilinear'
+        if self.grade in {
+            'A600', 'A800', 'A1000', 'Bp1200', 'Bp1300', 'Bp1400', 'Bp1500',
+            'K1400', 'K1500'
+        }:
+            return 'trilinear'
+        raise ValueError(
+            f"Для класса {self.grade} отсутствует нормативная привязка диаграммы в 6.2.13; "
+            "выберите явную модель только при наличии обоснования."
+        )
+
+    @property
     def Es(self) -> float:
         """Модуль упругости арматуры Es, МПа (п. 6.2.12)."""
         if self.grade.startswith('K'):
@@ -573,13 +868,14 @@ class Rebar:
 
     @property
     def eps_s0(self) -> float:
-        """Относительная деформация при достижении предела текучести eps_s0 = Rs / Es."""
-        return round(self.Rs / self.Es, 6)
+        """Относительная деформация условного/физического предела текучести."""
+        value = self.Rs / self.Es
+        return value + 0.002 if self.is_conditional_yield else value
 
     @property
     def eps_s2(self) -> float:
         """Предельная относительная деформация арматуры (п. 6.2.14)."""
-        return 0.025
+        return 0.015 if self.is_conditional_yield else 0.025
 
     # --------------------------------------------------------------------------
     # Деформационная диаграмма арматуры
@@ -587,9 +883,10 @@ class Rebar:
 
     def get_diagram(
         self,
-        model: str = 'prandtl',
+        model: str = 'auto',
         state: str = 'tension',
-        n_points: int = 100
+        n_points: int = 100,
+        signed: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Построение деформационной диаграммы состояния арматуры sigma_s - eps_s (п. 6.2.14).
@@ -603,18 +900,53 @@ class Rebar:
         n_points : int
             Количество точек дискретизации.
         """
-        is_tens = (state.lower() == 'tension')
-        R = self.Rs if is_tens else self.Rsc
-        eps0 = R / self.Es
-        eps2 = self.eps_s2
+        self._validate_diagram_inputs(model, state, n_points)
+        points = self.get_diagram_points(model, state, signed=signed)
+        return Concrete._sample_segments(list(points.values()), n_points)
 
-        eps_arr = np.linspace(0.0, eps2, n_points)
-        sigma_arr = np.piecewise(
-            eps_arr,
-            [eps_arr <= eps0, eps_arr > eps0],
-            [lambda e: self.Es * e, lambda e: R]
-        )
-        return eps_arr, sigma_arr
+    def _validate_diagram_inputs(self, model: str, state: str, n_points: int) -> None:
+        if not isinstance(n_points, (int, np.integer)) or n_points <= 0:
+            raise ValueError("n_points должен быть положительным целым числом.")
+        if str(state).lower() not in {'tension', 'compression'}:
+            raise ValueError("state должен быть 'tension' или 'compression'.")
+        if str(model).lower() not in {'auto', 'bilinear', 'trilinear', 'prandtl', 'hardening'}:
+            raise ValueError("Неизвестная model диаграммы арматуры.")
+
+    def _resolve_model(self, model: str) -> str:
+        model_clean = str(model).lower()
+        if model_clean == 'auto':
+            return self.diagram_kind
+        if model_clean == 'prandtl':
+            return 'bilinear'
+        if model_clean == 'hardening':
+            return 'trilinear'
+        return model_clean
+
+    def get_diagram_points(self, model: str = 'auto', state: str = 'tension', signed: bool = False) -> Dict[str, Tuple[float, float]]:
+        self._validate_diagram_inputs(model, state, 2)
+        model_clean = self._resolve_model(model)
+        is_comp = state.lower() == 'compression'
+        resistance = self.Rsc if is_comp else self.Rs
+        sign = -1.0 if is_comp and signed else 1.0
+        eps_y = self.Rsc / self.Es if is_comp and not self.is_conditional_yield else self.eps_s0
+        if model_clean == 'bilinear':
+            return {
+                'origin': (0.0, 0.0),
+                'yield': (sign * eps_y, sign * resistance),
+                'plateau_end': (sign * 0.025, sign * resistance),
+            }
+        if model_clean == 'trilinear':
+            eps_s1 = 0.9 * resistance / self.Es
+            eps_s0 = resistance / self.Es + (0.002 if self.is_conditional_yield else 0.0)
+            eps_s2_limit = 2.0 * eps_s0 - eps_s1
+            return {
+                'origin': (0.0, 0.0),
+                's1': (sign * eps_s1, sign * 0.9 * resistance),
+                'yield': (sign * eps_s0, sign * resistance),
+                's2_limit': (sign * eps_s2_limit, sign * 1.1 * resistance),
+                'plateau_end': (sign * 0.015, sign * 1.1 * resistance),
+            }
+        raise ValueError("Нормативная модель диаграммы арматуры не определена.")
 
     def to_dict(self) -> Dict[str, Union[str, float, bool]]:
         """Сводный словарь характеристик арматуры."""
@@ -629,6 +961,11 @@ class Rebar:
             'Rsc_design_MPa': self.Rsc,
             'Rsw_MPa': self.Rsw,
             'Es_MPa': self.Es,
+            'diagram_kind': self.diagram_kind if self.grade in {
+                'A240', 'A400', 'A500', 'A600', 'A800', 'A1000', 'B500', 'Bp500',
+                'Bp1200', 'Bp1300', 'Bp1400', 'Bp1500', 'K1400', 'K1500'
+            } else None,
+            'is_conditional_yield': self.is_conditional_yield,
             'eps_s0': self.eps_s0,
             'eps_s2': self.eps_s2
         }

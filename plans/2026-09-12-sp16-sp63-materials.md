@@ -132,7 +132,8 @@
       assert tuple(points) == ('O', 'A', 'C', 'D', 'E', 'F')
       assert points['O'] == pytest.approx((0.0, 0.0))
       assert points['A'][1] == pytest.approx(0.8 * steel.Ryn)
-      assert steel.get_diagram('OACDEF', n_points=120)[1].max() == pytest.approx(1.0 * steel.Ryn)
+      assert points['C'][1] == pytest.approx(steel.Ryn)
+      assert points['E'][1] == pytest.approx(1.415 * steel.Ryn)
   ```
 
   Add exact table-row checks for Bp1200–Bp1600, K1450/K1550/K1650/K1750/K1850/K1900, C355-K, C355P, C440B and the special B3/B5 thickness intervals. Use source values with the numerator/denominator of `gamma_m`, not rounded markdown values. Replace the existing `test_concrete_diagrams` assertion that every model ends at `c.eps_b2` with a model-specific assertion: bilinear/trilinear end at their `plateau_end`, while Appendix G compression ends at `eta_085`; replace `test_steel_diagram`'s `model='prandtl'`/`max == Ry` assertion with explicit `OACD` point and source-normalized stress assertions; update `test_bolts` from `A == 314.2` to `A == 314.0`; recheck `test_shapes_*` and `test_plates_c355_thickness_brackets` against the selected HTML numerator/denominator rows.

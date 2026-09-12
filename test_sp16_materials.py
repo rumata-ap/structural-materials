@@ -36,7 +36,7 @@ def test_sp16_gamma_m_branches_use_source_numerator_and_denominator():
 
 
 def test_sp16_shapes_do_not_fallback_to_plates():
-    with pytest.raises(ValueError, match='В\.5'):
+    with pytest.raises(ValueError, match=r'В\.5'):
         StructuralSteel('С235', profile_type='shapes', thickness=8.0)
 
 
@@ -67,7 +67,7 @@ def test_sp16_c690_design_resistances_and_b9_are_explicitly_unavailable():
     steel = StructuralSteel('С690', profile_type='plates', thickness=20.0)
     with pytest.raises(ValueError, match='Ry|Ru'):
         _ = steel.Ry
-    with pytest.raises(ValueError, match='В\.9'):
+    with pytest.raises(ValueError, match=r'В\.9'):
         steel.get_diagram_points('OACDEF')
 
 
@@ -86,8 +86,10 @@ def test_sp16_b9_is_grouped_by_grade_family_and_uses_ryn():
     assert tuple(points) == ('O', 'A', 'C', 'D', 'E', 'F')
     assert points['O'] == pytest.approx((0.0, 0.0))
     assert points['A'][1] == pytest.approx(0.8 * steel.Ryn)
+    assert points['C'][1] == pytest.approx(steel.Ryn)
+    assert points['E'][1] == pytest.approx(1.415 * steel.Ryn)
     eps, sig = steel.get_diagram('OACDEF', n_points=120)
-    assert sig.max() == pytest.approx(steel.Ryn)
+    assert sig.max() == pytest.approx(points['E'][1])
     assert eps[-1] == pytest.approx(points['F'][0])
 
 
