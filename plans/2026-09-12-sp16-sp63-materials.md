@@ -49,9 +49,19 @@
   `Rebar.get_diagram(model='auto', state='tension', n_points=100, signed=False)`,
   `Rebar.get_diagram_points(model='auto', state='tension', signed=False)`,
   `StructuralSteel.get_diagram(model='OACD', n_points=100, eps_max=None, signed=False)`,
-  `StructuralSteel.get_diagram_points(model='OACD')`,
+  `StructuralSteel.get_diagram_points(model='OACD', signed=False)`,
   `SteelBolt(grade='8.8', diameter=20, gamma_b=1.0, gamma_c=1.0, special_support=False)`.
-- The point methods return `Dict[str, Tuple[float, float]]`; keys are stable labels such as `origin`, `yield`, `plateau_end`, `peak`, `failure`, `A`, `B`, `C`, `D`, `E`, `F`.
+- The point methods return `Dict[str, Tuple[float, float]]` with this exact key contract:
+  - concrete bilinear: `origin`, `plateau_start`, `plateau_end`;
+  - concrete trilinear: `origin`, `transition`, `plateau_start`, `plateau_end`;
+  - concrete Appendix G compression: `origin`, `peak`, `eta_085`; concrete Appendix G tension: `origin`, `peak`, `failure`;
+  - rebar bilinear: `origin`, `yield`, `plateau_end`; rebar trilinear: `origin`, `s1`, `yield`, `s2_limit`, `plateau_end`;
+  - steel B.1: only the selected uppercase source labels from `O`, `A`, `B`, `C`, `D`, `E`, `F`.
+  The tuple is always `(epsilon, sigma)` in the selected sign convention. `plateau_end` is the last normative point, not an implicit hardcoded strain.
+- Public scalar properties used by tests are `Concrete.eps_b1_red`, `Concrete.eps_bt1_red`,
+  `StructuralSteel.Rlp_base`, `StructuralSteel.Rcd_base`, `Rebar.eps_s0`, and
+  `Rebar.eps_s2`; each is part of the contract and must appear in `to_dict()` where
+  it is meaningful.
 
 - [ ] **Step 1: Replace stale assertions that encode known defects.**
 
@@ -61,15 +71,19 @@
   def test_sp63_bilinear_uses_normative_transition_strain():
       concrete = Concrete('B25', long_term=False)
       assert concrete.eps_b1_red == 0.0015
-      assert concrete.get_diagram_points('bilinear', 'compression')['peak'][0] == 0.0015
+      points = concrete.get_diagram_points('bilinear', 'compression')
+      assert points['plateau_start'] == pytest.approx((0.0015, concrete.Rb))
+      assert points['plateau_end'][0] == pytest.approx(concrete.eps_b2)
 
   def test_sp63_conditional_rebar_and_trilinear_nodes():
       rebar = Rebar('A600', long_term=False)
       assert rebar.Es == 200000.0
       assert rebar.eps_s0 == pytest.approx(rebar.Rs / rebar.Es + 0.002)
       points = rebar.get_diagram_points(model='trilinear', state='tension')
-      assert points['sigma_s1'] == pytest.approx((0.9 * rebar.Rs))
-      assert points['epsilon_s2'] == pytest.approx(0.015)
+      assert points['s1'] == pytest.approx((0.9 * rebar.Rs / rebar.Es, 0.9 * rebar.Rs))
+      assert points['yield'] == pytest.approx((rebar.eps_s0, rebar.Rs))
+      assert points['s2_limit'][1] == pytest.approx(1.1 * rebar.Rs)
+      assert points['plateau_end'][0] == pytest.approx(0.015)
 
   def test_sp16_constants_and_b6_are_exact():
       steel = StructuralSteel('С235', profile_type='plates', thickness=3.0)
@@ -77,8 +91,9 @@
       assert steel.G == 79000.0
       assert steel.Ry_base == pytest.approx(230.0)
       assert steel.Ru_base == pytest.approx(350.0)
-      assert steel.Rlp_base == pytest.approx(0.5 * 360.0 / 1.025)
-      assert steel.Rcd_base == pytest.approx(0.025 * 360.0 / 1.025)
+      assert steel.Rp_base == pytest.approx(351.0)
+      assert steel.Rlp_base == pytest.approx(176.0)
+      assert steel.Rcd_base == pytest.approx(9.0)
 
   def test_sp16_no_cross_table_or_b9_fallback():
       with pytest.raises(ValueError, match='В.5'):
@@ -86,13 +101,41 @@
       with pytest.raises(ValueError, match='В.9'):
           StructuralSteel('С690', profile_type='plates', thickness=20.0).get_diagram()
 
-  def test_bolt_capacities_apply_gamma_c_only_to_tension_as_normative():
+  def test_bolt_capacities_apply_gamma_c_to_both_and_gamma_b_only_to_shear():
       bolt = SteelBolt('8.8', diameter=20, gamma_b=0.9, gamma_c=0.8)
-      assert bolt.shear_capacity(1) == pytest.approx(332.0 * 314.2 * 0.9 * 0.8 / 1000.0)
+      assert bolt.shear_capacity(1) == pytest.approx(332.0 * 314.0 * 0.9 * 0.8 / 1000.0)
       assert bolt.tension_capacity() == pytest.approx(451.0 * 245.0 * 0.8 / 1000.0)
+
+  def test_sp63_appendix_g_peak_cutoff_and_signs():
+      concrete = Concrete('B25', long_term=False)
+      compression = concrete.get_diagram_points('nonlinear', 'compression', signed=True)
+      tension = concrete.get_diagram_points('nonlinear', 'tension', signed=True)
+      assert compression['peak'][1] == pytest.approx(-concrete.Rb_ser)
+      assert compression['eta_085'][1] == pytest.approx(-0.85 * concrete.Rb_ser)
+      assert tension['peak'][1] == pytest.approx(concrete.Rbt_ser)
+      eps_c, sig_c = concrete.get_diagram('nonlinear', 'compression', n_points=160, signed=True)
+      assert np.min(sig_c) == pytest.approx(-concrete.Rb_ser)
+      assert eps_c[-1] == pytest.approx(compression['eta_085'][0])
+
+  def test_sp63_rsw_catalog_and_long_term_eps_b2_factor():
+      assert Rebar('A240').Rsw == 170.0
+      assert Rebar('A400').Rsw == 280.0
+      assert Rebar('A500').Rsw == 300.0
+      assert Rebar('B500').Rsw == 300.0
+      assert Rebar('A600').Rsw is None
+      concrete = Concrete('B80', humidity='40-75%', long_term=True)
+      assert concrete.eps_b2 == pytest.approx(0.0048 * (270.0 - 80.0) / 210.0)
+
+  def test_sp16_b9_uses_source_family_and_ryn():
+      steel = StructuralSteel('С355', profile_type='plates', thickness=12.0)
+      points = steel.get_diagram_points('OACDEF')
+      assert tuple(points) == ('O', 'A', 'C', 'D', 'E', 'F')
+      assert points['O'] == pytest.approx((0.0, 0.0))
+      assert points['A'][1] == pytest.approx(0.8 * steel.Ryn)
+      assert steel.get_diagram('OACDEF', n_points=120)[1].max() == pytest.approx(1.0 * steel.Ryn)
   ```
 
-  Extend the tests with exact table-row checks for Bp1200–Bp1600, K1450/K1550/K1650/K1750/K1850/K1900, C355-K, C355P, C440B and the special B3/B5 thickness intervals. Use source values with the numerator/denominator of `gamma_m`, not rounded markdown values.
+  Add exact table-row checks for Bp1200–Bp1600, K1450/K1550/K1650/K1750/K1850/K1900, C355-K, C355P, C440B and the special B3/B5 thickness intervals. Use source values with the numerator/denominator of `gamma_m`, not rounded markdown values. Replace the existing `test_concrete_diagrams` assertion that every model ends at `c.eps_b2` with a model-specific assertion: bilinear/trilinear end at their `plateau_end`, while Appendix G compression ends at `eta_085`; replace `test_steel_diagram`'s `model='prandtl'`/`max == Ry` assertion with explicit `OACD` point and source-normalized stress assertions; update `test_bolts` from `A == 314.2` to `A == 314.0`; recheck `test_shapes_*` and `test_plates_c355_thickness_brackets` against the selected HTML numerator/denominator rows.
 
 - [ ] **Step 2: Add explicit negative tests for input validation.**
 
@@ -100,7 +143,7 @@
 
 - [ ] **Step 3: Add notebook generator smoke tests.**
 
-  The test must run `create_nb.create_notebook()` and `create_steel_nb.create_steel_notebook()` into a temporary directory, load each result with `json.load`, compile every code cell with `compile(source, filename, 'exec')`, and assert that the generated source contains `get_diagram_points`, `TABLE_1_GAMMA_C`, no M12 option, and an explicit `OACDEF` option.
+  The generator contract is `create_notebook(output_path: Path | None = None) -> Path` and `create_steel_notebook(output_path: Path | None = None) -> Path`. With `output_path=None`, each function writes beside its own `.py` file via `Path(__file__).resolve().parent`; with a path, it writes exactly there and returns that `Path`. The test calls both functions with `tmp_path / 'material_selector.ipynb'` and `tmp_path / 'steel_selector.ipynb'`, loads each result with `json.load`, compiles every code cell with `compile(source, filename, 'exec')`, and asserts that the generated source contains `get_diagram_points`, `TABLE_1_GAMMA_C`, no M12 option, and an explicit `OACDEF` option.
 
 - [ ] **Step 4: Run the focused tests and record the expected failures.**
 
@@ -135,7 +178,7 @@
 
 - [ ] **Step 1: Replace the concrete catalogs with source-profile data.**
 
-  Keep the exact heavy-concrete rows from tables 6.7, 6.8, 6.11, 6.12 and 6.10. Extend the schema so `TABLE_6_10_DEFORMATIONS` stores `eps_b0`, `eps_b2`, `eps_b1_red`, `eps_bt0`, `eps_bt2`, `eps_bt1_red` for each ambient-humidity row. Store the B70–B100 short-term factor as an explicit `eps_b2` rule only. Add catalogs for B1.5–B2.5 and the supported fine-grained, light, porous and cellular variants, including density/curing selectors.
+  Keep the exact heavy-concrete rows from tables 6.7, 6.8, 6.11, 6.12 and 6.10. Extend the schema so `TABLE_6_10_DEFORMATIONS` stores `eps_b0`, `eps_b2`, `eps_b1_red`, `eps_bt0`, `eps_bt2`, `eps_bt1_red` for each ambient-humidity row. Apply `(270-B)/210` to the long-term `eps_b2` values for the classes where note 2 to table 6.10 requires it; keep the short-term B70–B100 rule as a separate `eps_b2` rule and do not apply either factor to `eps_bt2`. Add catalogs for B1.5–B2.5 and the supported fine-grained, light, porous and cellular variants, including density/curing selectors.
 
 - [ ] **Step 2: Write the minimal type and coefficient resolver.**
 
@@ -150,10 +193,12 @@
   Use these exact rules:
 
   ```python
+  E = self.Eb  # initial modulus Eb; never substitute Eb_red or Eb,tau here
   # bilinear compression/tension
   sigma = R * epsilon / epsilon_1_red if epsilon <= epsilon_1_red else R
 
-  # trilinear
+  # trilinear; epsilon_0 and epsilon_2 are eps_b0/eps_b2 or eps_bt0/eps_bt2
+  # selected by state, and the first slope uses the initial Eb
   (epsilon, sigma) = (0.0, 0.0), (0.6 * R / E, 0.6 * R), (epsilon_0, R), (epsilon_2, R)
 
   # Appendix G secant-branch point
@@ -161,7 +206,7 @@
   root = np.sqrt(max(0.0, 1.0 - omega_1 * eta - omega_2 * eta * eta))
   nu = nu_hat + (1.0 - nu_hat) * root                 # rising branch
   nu = nu_hat - (nu_0 - nu_hat) * root                 # descending branch
-  epsilon = eta * sigma_hat / (Eb * nu)
+  epsilon = eta * sigma_hat / (E * nu)
   sigma = eta * sigma_hat
   ```
 
@@ -169,7 +214,13 @@
 
 - [ ] **Step 5: Add point metadata and update exports.**
 
-  Return stable point keys (`origin`, `transition`, `peak`, `failure`, `eta_085`) from `get_diagram_points`. Add `eps_b1_red`/`eps_bt1_red`, type, density, curing and both humidity inputs to `to_dict`, Markdown, HTML and generated snippets. Ensure all accessors validate `n_points` and `state` before allocating arrays.
+  Return the exact model-specific point keys declared in Task 1: concrete bilinear
+  (`origin`, `plateau_start`, `plateau_end`), concrete trilinear
+  (`origin`, `transition`, `plateau_start`, `plateau_end`), Appendix G compression
+  (`origin`, `peak`, `eta_085`) and Appendix G tension (`origin`, `peak`, `failure`).
+  Add `eps_b1_red`/`eps_bt1_red`, type, density, curing and both humidity inputs to
+  `to_dict`, Markdown, HTML and generated snippets. Ensure all accessors validate
+  `n_points` and `state` before allocating arrays.
 
 - [ ] **Step 6: Run the concrete-focused tests.**
 
@@ -201,7 +252,7 @@
 
 - [ ] **Step 1: Transfer all source-profile reinforcement rows.**
 
-  Store exact `Rsn`, `Rs`, `Rsc_short`, `Rsc_long` rows for A240/A400/A500/A600/A800/A1000, B500, Bp500/Bp1200–Bp1600, K1400/K1450/K1500/K1550/K1600/K1650/K1750/K1850/K1900. Store K1750/K1850/K1900 as literal rows (`Rsn=1740/1840/1920`, `Rs=1515/1600/1670`, `Rsc=500 (400)`), not as recalculated values. Normalize Cyrillic `А`, `В`, `К` and aliases `Bp`/`Вр` to canonical keys.
+  Store exact `Rsn`, `Rs`, `Rsc_short`, `Rsc_long` rows for A240/A400/A500/A600/A800/A1000, B500, Bp500/Bp1200–Bp1600, K1400/K1450/K1500/K1550/K1650/K1750/K1850/K1900. Store K1750/K1850/K1900 as literal rows (`Rsn=1740/1840/1920`, `Rs=1515/1600/1670`, `Rsc=500 (400)`), not as recalculated values. Keep K1600 only in the explanatory 6.2.13 model map because it is absent from tables 6.13/6.14. Normalize Cyrillic `А`, `В`, `К` and aliases `Bp`/`Вр` to canonical keys.
 
 - [ ] **Step 2: Implement normative Rsw availability.**
 
@@ -209,7 +260,12 @@
 
 - [ ] **Step 3: Implement model selection and exact nodes.**
 
-  Use an explicit class map for `model='auto'`: bilinear for A240–A500 and B500; trilinear for A600–A1000, Bp1200–Bp1500, K1400, K1500 and K1600. Keep additional table rows available for resistance reporting, but make `auto` raise a descriptive error where the selected class has no normative automatic-model rule instead of deriving a model from the number.
+  Use an explicit class map for `model='auto'`: bilinear for A240–A500 and B500;
+  trilinear for A600–A1000, Bp1200–Bp1500, K1400, K1500 and the normative
+  6.2.13 name K1600. Since K1600 is absent from tables 6.13/6.14, it produces no
+  selectable row; table-present K1550 and K1650–K1900 remain available for exact
+  resistance reporting but `auto` raises a descriptive error for them instead of
+  deriving a model from the number.
 
   Implement the exact nodes:
 
@@ -217,10 +273,17 @@
   eps_s0 = Rs / Es                         # physical yield
   eps_s0 = Rs / Es + 0.002                 # conditional yield
   bilinear: (0, 0) -> (eps_s0, Rs) -> (0.025, Rs)
-  trilinear: (0, 0) -> (0.9*Rs, 0.9*Rs/Es) -> (0.015, 1.1*Rs)
+  eps_s1 = 0.9 * Rs / Es
+  eps_s2_limit = 2.0 * eps_s0 - eps_s1
+  trilinear: (0, 0) -> (eps_s1, 0.9*Rs) -> (eps_s0, Rs)
+              -> (eps_s2_limit, 1.1*Rs) -> (0.015, 1.1*Rs)
   ```
 
-  Limit the trilinear stress to `1.1*Rs`, mirror both branches in `signed=True`, and include every named node in the arrays.
+  On `eps_s1 <= eps <= eps_s0`, calculate exactly
+  `sigma_s = ((1 - sigma_s1/Rs) * (eps_s-eps_s1)/(eps_s0-eps_s1) + sigma_s1/Rs) * Rs`;
+  on the next segment use the same expression capped by `min(sigma_s, 1.1*Rs)`.
+  Hold `1.1*Rs` through `eps_s2=0.015`, mirror both branches in `signed=True`,
+  and return point keys `origin`, `s1`, `yield`, `s2_limit`, `plateau_end`.
 
 - [ ] **Step 4: Update serialization and snippets.**
 
@@ -245,7 +308,7 @@
 **Interfaces:**
 - Preserve `StructuralSteel(grade, profile_type, thickness, statistical_control, gamma_c)` and accept Latin/Cyrillic aliases for `C/С` and grade suffixes while exposing one canonical grade key.
 - Add `TABLE_1_GAMMA_C` and `list_gamma_c_options() -> List[Tuple[str, float]]`.
-- Implement `StructuralSteel.get_diagram(model='OACD', n_points=100, eps_max=None, signed=False)` and `get_diagram_points(model='OACD')`.
+- Implement `StructuralSteel.get_diagram(model='OACD', n_points=100, eps_max=None, signed=False)` and `get_diagram_points(model='OACD', signed=False)`.
 - Expose `Ry_base`, `Ru_base`, `Ry`, `Ru`, `Ryn`, `Run`, `Rp_base`, `Rlp_base`, `Rcd_base`, `Rp`, `Rlp`, `Rcd`, `E`, `G`, `nu`, and `eps_y` without mixing numerator/denominator values.
 
 - [ ] **Step 1: Replace B3/B4/B5 table literals from the selected HTML.**
@@ -256,9 +319,17 @@
 
   Resolve a row by the source inclusion flags, reject gaps and non-positive thickness, support B4 `>100` as an open interval, and expose an error containing the table name for an unavailable grade. Select `gamma_m=1.025` for statistical control and `gamma_m=1.050` otherwise; calculate only fields that have a source numerator/denominator. A missing C690 `Ry`/`Ru` must raise rather than use a neighboring row.
 
-- [ ] **Step 3: Implement B6 without interpolation.**
+- [ ] **Step 3: Implement B6 using one canonical representation.**
 
-  Store all 16 exact `Run` rows 360…590 with the source values for `Rp`, `Rlp`, and `Rcd` and both gamma-m contexts. For the normalized source formula use `Rp=Run/gamma_m`, `Rlp=0.5*Run/gamma_m`, `Rcd=0.025*Run/gamma_m`; expose the unmodified B6 result as `*_base` and apply `gamma_c` only in the final properties. An unknown Run raises `ValueError` instead of interpolation.
+  The public canonical values are the rounded values printed in the selected HTML
+  table В.6: store all 15 exact `Run` rows `360, 370, 380, 390, 400, 430, 440,
+  450, 460, 470, 480, 490, 510, 540, 570, 590` together with the source `Rp`, `Rlp`
+  and `Rcd` values for both gamma-m contexts. For example, the Run=360 row exposes
+  `Rp_base=351/343`, `Rlp_base=176/171`, `Rcd_base=9/9` for statistical/non-statistical
+  control. The formulas `Rp=Run/gamma_m`, `Rlp=0.5*Run/gamma_m` and
+  `Rcd=0.025*Run/gamma_m` are retained in comments/tests as the normative relation,
+  but are not recomputed after the table's published rounding. Apply `gamma_c` only
+  in the final properties. An unknown Run raises `ValueError` instead of interpolation.
 
 - [ ] **Step 4: Implement table 1 and validation.**
 
@@ -308,7 +379,11 @@
 
 - [ ] **Step 1: Replace the diameter catalog with Г.9.**
 
-  Store 16, 18, 20, 22, 24, 27, 30, 36, 42 and 48 mm with exact gross/net areas. Mark 18, 22 and 27 as special-support-only; reject them unless `special_support=True`. Reject M12 and every diameter absent from Г.9.
+  Store 16, 18, 20, 22, 24, 27, 30, 36, 42 and 48 mm with the tabular gross/net
+  areas from Г.9, converted from cm² to mm² without recomputing `pi*d*d/4`.
+  For example, M20 is `A=314.0` mm² and `Abn=245.0` mm²; M16 is `201.0` and
+  `157.0` mm². Mark 18, 22 and 27 as special-support-only; reject them unless
+  `special_support=True`. Reject M12 and every diameter absent from Г.9.
 
 - [ ] **Step 2: Validate bolt inputs.**
 
@@ -343,13 +418,17 @@
 - Test: `test_notebook_generators.py`
 
 **Interfaces:**
-- Generators import only the public module APIs and produce valid nbformat 4 JSON.
+- Generators expose `create_notebook(output_path: Path | None = None) -> Path` and
+  `create_steel_notebook(output_path: Path | None = None) -> Path`. They import only
+  the public module APIs and produce valid nbformat 4 JSON. A default call writes
+  beside the generator file; a supplied path is used without any absolute machine
+  specific path.
 - The SP 63 notebook uses concrete type, density/curing, ambient humidity, cellular humidity where required, load duration, gamma coefficients, rebar grade and `model='auto'` controls.
 - The SP 16 notebook uses profile type, grade, numeric thickness, statistical control, `TABLE_1_GAMMA_C`, explicit B.1 variant, bolt grade, Г.9 diameter and special-support context.
 
 - [ ] **Step 1: Rewrite the SP 63 plotting cell around point metadata.**
 
-  Call `get_diagram(model=w_diag_model.value, state='compression', n_points=160, signed=True)` and `get_diagram_points(model=w_diag_model.value, state='compression', signed=True)` for markers. Plot strain consistently in ‰ on every axis, label compression as negative and tension as positive, set x-limits from the returned arrays, and annotate `transition`, `peak`, `failure` and `eta_085` when present. Do not draw `eps_b0` as the bilinear peak or reuse the compression model for tension.
+  Call `get_diagram(model=w_diag_model.value, state='compression', n_points=160, signed=True)` and `get_diagram_points(model=w_diag_model.value, state='compression', signed=True)` for markers. Iterate over the returned `(label, (epsilon, sigma))` pairs so the exact model-specific keys (`plateau_start`, `plateau_end`, `transition`, `peak`, `failure`, `eta_085`) are plotted without hardcoded substitutions. Plot strain consistently in ‰ on every axis, label compression as negative and tension as positive, set x-limits from the returned arrays, and do not draw `eps_b0` as the bilinear peak or reuse the compression model for tension.
 
 - [ ] **Step 2: Rewrite the SP 63 controls and output.**
 
@@ -397,23 +476,25 @@
 
   Expected result: exit code 0, all tests pass, and no test imports a module from GreenSectionPy or OpenCS.
 
-- [ ] **Step 2: Execute both generated notebooks locally.**
+- [ ] **Step 2: Execute copies of both generated notebooks locally.**
 
   ```powershell
-  python -m jupyter nbconvert --to notebook --execute --inplace material_selector.ipynb --ExecutePreprocessor.timeout=120 --ExecutePreprocessor.allow_errors=False
-  python -m jupyter nbconvert --to notebook --execute --inplace steel_selector.ipynb --ExecutePreprocessor.timeout=120 --ExecutePreprocessor.allow_errors=False
+  $qaDir = Join-Path ([System.IO.Path]::GetTempPath()) 'expert-materials-notebook-qa'
+  New-Item -ItemType Directory -Force -Path $qaDir | Out-Null
+  python -m jupyter nbconvert --to notebook --execute --output-dir $qaDir material_selector.ipynb --ExecutePreprocessor.timeout=120 --ExecutePreprocessor.allow_errors=False
+  python -m jupyter nbconvert --to notebook --execute --output-dir $qaDir steel_selector.ipynb --ExecutePreprocessor.timeout=120 --ExecutePreprocessor.allow_errors=False
   ```
 
-  Expected result: both commands finish with exit code 0 and each notebook contains at least one Matplotlib output and the selected-material tables/snippet output.
+  Expected result: both commands finish with exit code 0, the source notebooks remain unchanged, and each executed copy contains at least one Matplotlib output and the selected-material tables/snippet output.
 
 - [ ] **Step 3: Render HTML and inspect the actual charts.**
 
   ```powershell
-  python -m jupyter nbconvert --to html --output material_selector-qa.html material_selector.ipynb
-  python -m jupyter nbconvert --to html --output steel_selector-qa.html steel_selector.ipynb
+  python -m jupyter nbconvert --to html --output-dir $qaDir $qaDir\material_selector.ipynb
+  python -m jupyter nbconvert --to html --output-dir $qaDir $qaDir\steel_selector.ipynb
   ```
 
-  Inspect the rendered figures for exact endpoint visibility, readable non-overlapping annotations, consistent ‰ labels, negative signed compression, visible B.1/B.9 nodes, no clipped legend, no artificial 2.5% endpoint, and no zero bar falsely representing unavailable bolt tension resistance. Remove the two `*-qa.html` files after inspection if they are not project artifacts.
+  Inspect the rendered figures for exact endpoint visibility, readable non-overlapping annotations, consistent ‰ labels, negative signed compression, visible B.1/B.9 nodes, no clipped legend, no artificial 2.5% endpoint, and no zero bar falsely representing unavailable bolt tension resistance. Remove `$qaDir` after inspection; no QA files are project artifacts.
 
 - [ ] **Step 4: Update README to match the final public behavior.**
 
@@ -424,7 +505,7 @@
   ```powershell
   git diff --check
   git status --short
-  git diff --name-only HEAD~1
+  git diff --name-only origin/main..HEAD
   git add -- README.md
   git commit -m "docs: document corrected SP16 SP63 material selectors"
   ```
