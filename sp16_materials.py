@@ -462,6 +462,50 @@ class StructuralSteel:
 """
         return md
 
+    def to_html(self) -> str:
+        """Сводная таблица характеристик в формате HTML."""
+        d = self.to_dict()
+        profile_names = {
+            'shapes': 'Фасонный прокат (ГОСТ 27772, табл. В.5)',
+            'plates': 'Листовой и универсальный прокат (табл. В.3)',
+            'tubes': 'Трубы круглые и профильные (табл. В.3)',
+            'beams_parallel': 'Двутавры с параллельными гранями полок (ГОСТ Р 57837, табл. В.4)'
+        }
+        prof_name = profile_names.get(str(d['profile_type']), str(d['profile_type']))
+        stat_str = "Со статконтролем (&gamma;<sub>m</sub> = 1.025)" if d['statistical_control'] else "Без статконтроля (&gamma;<sub>m</sub> = 1.050)"
+        
+        html = f"""<div style="margin-top: 15px; margin-bottom: 25px;">
+<h3 style="margin-bottom: 8px;">Характеристики стали <strong>{d['grade']}</strong> <small style="color: #6c757d;">(СП 16.13330.2017)</small></h3>
+<ul style="margin-bottom: 12px; line-height: 1.6;">
+  <li><strong>Вид проката:</strong> {prof_name} (толщина <i>t</i> = {d['thickness_mm']} мм)</li>
+  <li><strong>Качество проката:</strong> {stat_str}</li>
+  <li><strong>Коэффициент условий работы:</strong> &gamma;<sub>c</sub> = {d['gamma_c']}</li>
+</ul>
+<table class="table table-bordered table-striped" style="max-width: 850px; font-size: 14px; background: white;">
+  <thead>
+    <tr style="background-color: #f8f9fa;">
+      <th style="text-align: left; width: 48%;">Параметр</th>
+      <th style="text-align: center; width: 18%;">Обозначение</th>
+      <th style="text-align: center; width: 18%;">Значение</th>
+      <th style="text-align: center; width: 16%;">Ед. изм.</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Расчетное сопротивление растяжению/сжатию/изгибу</td><td style="text-align: center;"><i>R<sub>y</sub></i></td><td style="text-align: center;"><strong>{d['Ry_design_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление по пределу прочности</td><td style="text-align: center;"><i>R<sub>u</sub></i></td><td style="text-align: center;"><strong>{d['Ru_design_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление сдвигу (0.58 <i>R<sub>y</sub></i>)</td><td style="text-align: center;"><i>R<sub>s</sub></i></td><td style="text-align: center;"><strong>{d['Rs_shear_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление смятию торцевой поверхности</td><td style="text-align: center;"><i>R<sub>p</sub></i></td><td style="text-align: center;">{d['Rp_bearing_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление смятию в шарнирах (0.5 <i>R<sub>y</sub></i>)</td><td style="text-align: center;"><i>R<sub>lp</sub></i></td><td style="text-align: center;">{d['Rlp_pin_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Нормативный предел текучести</td><td style="text-align: center;"><i>R<sub>yn</sub></i></td><td style="text-align: center;">{d['Ryn_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Нормативное временное сопротивление</td><td style="text-align: center;"><i>R<sub>un</sub></i></td><td style="text-align: center;">{d['Run_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Модуль упругости</td><td style="text-align: center;"><i>E</i></td><td style="text-align: center;">{d['E_MPa']:,.0f}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Модуль сдвига</td><td style="text-align: center;"><i>G</i></td><td style="text-align: center;">{d['G_MPa']:,.0f}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Деформация предела текучести</td><td style="text-align: center;">&epsilon;<sub>y</sub></td><td style="text-align: center;">{d['eps_y']}</td><td style="text-align: center;">-</td></tr>
+  </tbody>
+</table>
+</div>"""
+        return html
+
 
 # ==============================================================================
 # КЛАСС БОЛТОВЫХ СОЕДИНЕНИЙ (СП 16, Приложение Г)
@@ -579,6 +623,38 @@ class SteelBolt:
 | Коэффициент условий работы соединения | $\\gamma_b$ | {d['gamma_b']} | - |
 """
         return md
+
+    def to_html(self) -> str:
+        """Сводная таблица характеристик болта в формате HTML."""
+        d = self.to_dict()
+        rbt_str = f"{d['Rbt_MPa']}" if d['Rbt_MPa'] is not None else "Не применяется"
+        rbt_unit = "МПа" if d['Rbt_MPa'] is not None else "-"
+        nbt_str = f"{d['Nbt_kN']}" if d['Nbt_kN'] is not None else "-"
+        nbt_unit = "кН" if d['Nbt_kN'] is not None else "-"
+        
+        html = f"""<div style="margin-top: 15px; margin-bottom: 25px;">
+<h3 style="margin-bottom: 8px;">Болт класса прочности <strong>{d['grade']}</strong>, М{d['diameter_mm']} <small style="color: #6c757d;">(СП 16.13330.2017)</small></h3>
+<table class="table table-bordered table-striped" style="max-width: 850px; font-size: 14px; background: white;">
+  <thead>
+    <tr style="background-color: #f8f9fa;">
+      <th style="text-align: left; width: 48%;">Параметр</th>
+      <th style="text-align: center; width: 18%;">Обозначение</th>
+      <th style="text-align: center; width: 18%;">Значение</th>
+      <th style="text-align: center; width: 16%;">Ед. изм.</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Расчетное сопротивление срезу</td><td style="text-align: center;"><i>R<sub>bs</sub></i></td><td style="text-align: center;"><strong>{d['Rbs_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление растяжению</td><td style="text-align: center;"><i>R<sub>bt</sub></i></td><td style="text-align: center;"><strong>{rbt_str}</strong></td><td style="text-align: center;">{rbt_unit}</td></tr>
+    <tr><td>Площадь стержня брутто</td><td style="text-align: center;"><i>A</i></td><td style="text-align: center;">{d['A_mm2']}</td><td style="text-align: center;">мм²</td></tr>
+    <tr><td>Площадь сечения нетто по резьбе</td><td style="text-align: center;"><i>A<sub>bn</sub></i></td><td style="text-align: center;">{d['Abn_mm2']}</td><td style="text-align: center;">мм²</td></tr>
+    <tr><td>Несущая способность на срез (1 плоскость среза)</td><td style="text-align: center;"><i>N<sub>bs</sub></i></td><td style="text-align: center;"><strong>{d['Nbs_1plane_kN']}</strong></td><td style="text-align: center;">кН</td></tr>
+    <tr><td>Несущая способность на растяжение</td><td style="text-align: center;"><i>N<sub>bt</sub></i></td><td style="text-align: center;"><strong>{nbt_str}</strong></td><td style="text-align: center;">{nbt_unit}</td></tr>
+    <tr><td>Коэффициент условий работы соединения</td><td style="text-align: center;">&gamma;<sub>b</sub></td><td style="text-align: center;">{d['gamma_b']}</td><td style="text-align: center;">-</td></tr>
+  </tbody>
+</table>
+</div>"""
+        return html
 
 
 # ==============================================================================

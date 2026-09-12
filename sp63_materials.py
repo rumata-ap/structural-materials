@@ -458,6 +458,43 @@ class Concrete:
 """
         return md
 
+    def to_html(self) -> str:
+        """Формирование сводной таблицы характеристик бетона в формате HTML."""
+        d = self.to_dict()
+        html = f"""<div style="margin-top: 15px; margin-bottom: 25px;">
+<h3 style="margin-bottom: 8px;">Характеристики бетона класса <strong>{d['grade']}</strong> <small style="color: #6c757d;">(СП 63.13330.2018)</small></h3>
+<ul style="margin-bottom: 12px; line-height: 1.6;">
+  <li><strong>Вид бетона:</strong> Тяжелый</li>
+  <li><strong>Влажность среды:</strong> {d['humidity']}</li>
+  <li><strong>Длительность нагрузки:</strong> {'Длительная (gamma_b1 = 0.90)' if d['long_term'] else 'Кратковременная (gamma_b1 = 1.00)'}</li>
+  <li><strong>Суммарный коэффициент условий работы:</strong> &gamma;<sub>b,total</sub> = {d['gamma_b_total']}</li>
+</ul>
+<table class="table table-bordered table-striped" style="max-width: 850px; font-size: 14px; background: white;">
+  <thead>
+    <tr style="background-color: #f8f9fa;">
+      <th style="text-align: left; width: 48%;">Параметр</th>
+      <th style="text-align: center; width: 18%;">Обозначение</th>
+      <th style="text-align: center; width: 18%;">Значение</th>
+      <th style="text-align: center; width: 16%;">Ед. изм.</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Расчетное сопротивление сжатию (I группа ПС)</td><td style="text-align: center;"><i>R<sub>b</sub></i></td><td style="text-align: center;"><strong>{d['Rb_design_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление растяжению (I группа ПС)</td><td style="text-align: center;"><i>R<sub>bt</sub></i></td><td style="text-align: center;"><strong>{d['Rbt_design_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Нормативное сопротивление сжатию (II группа ПС)</td><td style="text-align: center;"><i>R<sub>bn</sub> / R<sub>b,ser</sub></i></td><td style="text-align: center;">{d['Rbn_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Нормативное сопротивление растяжению (II группа ПС)</td><td style="text-align: center;"><i>R<sub>btn</sub> / R<sub>bt,ser</sub></i></td><td style="text-align: center;">{d['Rbtn_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Начальный модуль упругости</td><td style="text-align: center;"><i>E<sub>b</sub></i></td><td style="text-align: center;">{d['Eb_initial_MPa']:,.0f}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Коэффициент ползучести бетона</td><td style="text-align: center;">&phi;<sub>b,cr</sub></td><td style="text-align: center;">{d['phi_b_cr']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Приведенный модуль деформации</td><td style="text-align: center;"><i>E<sub>b,red</sub></i></td><td style="text-align: center;"><strong>{d['Eb_red_MPa']:,.0f}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Предельная деформация вершины сжатия</td><td style="text-align: center;">&epsilon;<sub>b0</sub></td><td style="text-align: center;">{d['eps_b0']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Предельная деформация разрушения сжатия</td><td style="text-align: center;">&epsilon;<sub>b2</sub></td><td style="text-align: center;">{d['eps_b2']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Предельная деформация вершины растяжения</td><td style="text-align: center;">&epsilon;<sub>bt0</sub></td><td style="text-align: center;">{d['eps_bt0']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Предельная деформация разрушения растяжения</td><td style="text-align: center;">&epsilon;<sub>bt2</sub></td><td style="text-align: center;">{d['eps_bt2']}</td><td style="text-align: center;">-</td></tr>
+  </tbody>
+</table>
+</div>"""
+        return html
+
 
 # ==============================================================================
 # КЛАСС АРМАТУРЫ
@@ -614,6 +651,36 @@ class Rebar:
 | Коэффициент условий работы | $\\gamma_s$ | {d['gamma_s']} | - |
 """
         return md
+
+    def to_html(self) -> str:
+        """Формирование сводной таблицы характеристик арматуры в формате HTML."""
+        d = self.to_dict()
+        rsw_str = f"{d['Rsw_MPa']}" if d['Rsw_MPa'] is not None else "Не применяется"
+        rsw_unit = "МПа" if d['Rsw_MPa'] is not None else "-"
+        html = f"""<div style="margin-top: 15px; margin-bottom: 25px;">
+<h3 style="margin-bottom: 8px;">Характеристики арматуры класса <strong>{d['grade']}</strong> <small style="color: #6c757d;">(СП 63.13330.2018)</small></h3>
+<table class="table table-bordered table-striped" style="max-width: 850px; font-size: 14px; background: white;">
+  <thead>
+    <tr style="background-color: #f8f9fa;">
+      <th style="text-align: left; width: 48%;">Параметр</th>
+      <th style="text-align: center; width: 18%;">Обозначение</th>
+      <th style="text-align: center; width: 18%;">Значение</th>
+      <th style="text-align: center; width: 16%;">Ед. изм.</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Расчетное сопротивление растяжению (I группа ПС)</td><td style="text-align: center;"><i>R<sub>s</sub></i></td><td style="text-align: center;"><strong>{d['Rs_design_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление сжатию (I группа ПС)</td><td style="text-align: center;"><i>R<sub>sc</sub></i></td><td style="text-align: center;"><strong>{d['Rsc_design_MPa']}</strong></td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Расчетное сопротивление поперечной арматуры</td><td style="text-align: center;"><i>R<sub>sw</sub></i></td><td style="text-align: center;">{rsw_str}</td><td style="text-align: center;">{rsw_unit}</td></tr>
+    <tr><td>Нормативное сопротивление растяжению (II группа ПС)</td><td style="text-align: center;"><i>R<sub>sn</sub> / R<sub>s,ser</sub></i></td><td style="text-align: center;">{d['Rsn_MPa']}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Модуль упругости</td><td style="text-align: center;"><i>E<sub>s</sub></i></td><td style="text-align: center;">{d['Es_MPa']:,.0f}</td><td style="text-align: center;">МПа</td></tr>
+    <tr><td>Деформация предела текучести</td><td style="text-align: center;">&epsilon;<sub>s0</sub></td><td style="text-align: center;">{d['eps_s0']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Предельная деформация удлинения</td><td style="text-align: center;">&epsilon;<sub>s2</sub></td><td style="text-align: center;">{d['eps_s2']}</td><td style="text-align: center;">-</td></tr>
+    <tr><td>Коэффициент условий работы</td><td style="text-align: center;">&gamma;<sub>s</sub></td><td style="text-align: center;">{d['gamma_s']}</td><td style="text-align: center;">-</td></tr>
+  </tbody>
+</table>
+</div>"""
+        return html
 
 
 # ==============================================================================
