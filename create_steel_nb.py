@@ -59,7 +59,6 @@ def create_steel_notebook(output_path: Path | None = None) -> Path:
                 TABLE_1_GAMMA_C,
                 SteelBolt,
                 StructuralSteel,
-                generate_steel_code_snippet,
                 list_gamma_c_options,
                 list_steel_grades,
             )
@@ -302,10 +301,8 @@ def create_steel_notebook(output_path: Path | None = None) -> Path:
                     ax_bolts.legend(loc="upper left", fontsize=9)
                     plt.show()
 
-                    display(Markdown(steel.to_markdown()))
-                    display(Markdown(bolt.to_markdown()))
-                    display(Markdown("### Готовый фрагмент кода"))
-                    display(Markdown(f"```python\n{generate_steel_code_snippet(steel, bolt)}\n```"))
+                    display(HTML(steel.to_html()))
+                    display(HTML(bolt.to_html()))
 
 
             w_profile_type.observe(on_profile_change, names="value")

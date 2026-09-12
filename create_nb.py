@@ -59,7 +59,6 @@ def create_notebook(output_path: Path | None = None) -> Path:
             from sp63_materials import (
                 Concrete,
                 Rebar,
-                generate_code_snippet,
                 list_concrete_grades,
                 list_rebar_grades,
             )
@@ -291,10 +290,8 @@ def create_notebook(output_path: Path | None = None) -> Path:
                         axis.axvline(0.0, color="black", lw=0.7, alpha=0.5)
                     plt.show()
 
-                    display(Markdown(concrete.to_markdown()))
-                    display(Markdown(rebar.to_markdown()))
-                    display(Markdown("### Готовый фрагмент кода"))
-                    display(Markdown(f"```python\n{generate_code_snippet(concrete, rebar)}\n```"))
+                    display(HTML(concrete.to_html()))
+                    display(HTML(rebar.to_html()))
 
 
             controls = [
