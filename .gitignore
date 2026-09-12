@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Scratch & temporary raw text extraction dumps
+sp15_sec6.html
+sp15_section6_raw.html
+sp15_mesh_clauses.html
+sp15_extracted.txt
+sp15_sec6_clean.txt
+sp15_section6_tables.txt
+sp15_clause_6_14.txt
+sp15_arm_clean.txt
+sp15_mesh_clean.txt
+sp15_notes.txt
+tables_extracted.txt
+parse_tables.py
+parse_bolts.py
