@@ -322,8 +322,8 @@
 - [ ] **Step 3: Implement B6 using one canonical representation.**
 
   The public canonical values are the rounded values printed in the selected HTML
-  table В.6: store all 15 exact `Run` rows `360, 370, 380, 390, 400, 430, 440,
-  450, 460, 470, 480, 510, 540, 570, 590` together with the source `Rp`, `Rlp`
+  table В.6: store all 16 exact `Run` rows `360, 370, 380, 390, 400, 430, 440,
+  450, 460, 470, 480, 490, 510, 540, 570, 590` together with the source `Rp`, `Rlp`
   and `Rcd` values for both gamma-m contexts. For example, the Run=360 row exposes
   `Rp_base=351/343`, `Rlp_base=176/171`, `Rcd_base=9/9` for statistical/non-statistical
   control. The formulas `Rp=Run/gamma_m`, `Rlp=0.5*Run/gamma_m` and

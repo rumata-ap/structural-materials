@@ -52,10 +52,10 @@ def test_sp16_shape_and_plate_thickness_boundaries_are_source_rows():
 
 def test_sp16_b6_uses_published_rounded_rows_without_interpolation():
     steel = StructuralSteel('С235', profile_type='plates', thickness=3.0)
-    assert len(TABLE_B6_RP) == 15
+    assert len(TABLE_B6_RP) == 16
     assert set(TABLE_B6_RP) == {
         360.0, 370.0, 380.0, 390.0, 400.0, 430.0, 440.0, 450.0,
-        460.0, 470.0, 480.0, 510.0, 540.0, 570.0, 590.0,
+        460.0, 470.0, 480.0, 490.0, 510.0, 540.0, 570.0, 590.0,
     }
     assert steel.Rp_base == pytest.approx(351.0)
     assert steel.Rlp_base == pytest.approx(176.0)
