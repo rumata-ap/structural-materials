@@ -2,6 +2,39 @@
 
 Библиотека и интерактивные блокноты для выбора и расчета нормативных и расчетных характеристик строительных материалов в соответствии с актуальными российскими строительными сводами правил.
 
+## Структура проекта
+
+```text
+structural-materials/
+├── structural_materials/         # Пакет Python (СП 15, СП 16, СП 63)
+│   ├── __init__.py               # Экспорт ключевых классов и модулей
+│   ├── sp15_materials.py         # СП 15.13330 (каменные и армокаменные)
+│   ├── sp16_materials.py         # СП 16.13330 (сталь и болты)
+│   ├── sp63_materials.py         # СП 63.13330 (бетон и арматура)
+│   └── sp15_tables_data.json
+├── notebooks/                    # Интерактивные блокноты Jupyter
+│   ├── masonry_selector.ipynb
+│   ├── material_selector.ipynb
+│   └── steel_selector.ipynb
+├── scripts/                      # Генераторы блокнотов
+│   ├── create_masonry_nb.py
+│   ├── create_nb.py
+│   └── create_steel_nb.py
+├── tests/                        # Модульные тесты
+│   ├── conftest.py
+│   ├── test_notebook_generators.py
+│   ├── test_sp15_materials.py
+│   ├── test_sp16_materials.py
+│   └── test_sp63_materials.py
+└── pyproject.toml                # Конфигурация пакета и сборщика
+```
+
+### Установка пакета
+
+```bash
+pip install -e .
+```
+
 ---
 
 ## 1. СП 63.13330.2018 «Бетонные и железобетонные конструкции»
@@ -45,7 +78,7 @@
 * **Блокнот `masonry_selector.ipynb`**:
   - Интерактивный выбор вида кладки, марок и параметров сетки на `ipywidgets`.
   - Статический эталонный расчет кирпича М150/раствора М100 с графиком $σ-ε$, сводной таблицей и примером простенка 380 × 640 мм.
-* **Тесты**: `pytest -v test_sp15_materials.py`.
+* **Тесты**: `pytest` или `pytest -v tests/test_sp15_materials.py`.
 
 ---
 
@@ -62,7 +95,10 @@
 ## 5. Примеры использования в инженерном коде
 
 ```python
-# --- Бетон и арматура (СП 63) ---
+# Вариант 1: импорт напрямую из пакета
+from structural_materials import Concrete, Rebar, StructuralSteel, SteelBolt, Masonry
+
+# Вариант 2: импорт из подмодулей (полная обратная совместимость)
 from sp63_materials import Concrete, Rebar
 
 concrete = Concrete(grade='B25', humidity='40-75%', long_term=True)

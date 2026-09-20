@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "structural-materials"
+version = "0.2.0"
+description = "Расчет нормативных характеристик строительных материалов (СП 15, СП 16, СП 63)"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Aleksandr Ponomarev" }
+]
+dependencies = [
+    "numpy",
+]
+
+[project.optional-dependencies]
+notebooks = [
+    "matplotlib",
+    "ipywidgets>=8.0",
+    "IPython",
+]
+dev = [
+    "pytest>=7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["structural_materials*"]
+
+[tool.setuptools.package-data]
+structural_materials = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "structural_materials", "scripts"]

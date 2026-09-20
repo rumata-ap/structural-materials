@@ -28,9 +28,9 @@ def _code_cell(source: str) -> Dict[str, Any]:
     }
 
 
-def create_masonry_notebook(output_path: PathLike = "masonry_selector.ipynb") -> Path:
+def create_masonry_notebook(output_path: PathLike | None = None) -> Path:
     """Создать блокнот СП 15 без машинно-зависимых абсолютных путей."""
-    path = Path(output_path)
+    path = Path(output_path) if output_path is not None else Path(__file__).resolve().parent.parent / "notebooks" / "masonry_selector.ipynb"
     path.parent.mkdir(parents=True, exist_ok=True)
 
     cells: List[Dict[str, Any]] = [
@@ -47,7 +47,15 @@ $$R_{sk} = R + \frac{p \mu R_s \gamma_{cs}}{100} \le 2R,$$
 """
         ),
         _code_cell(
-            """import numpy as np
+            """import sys
+from pathlib import Path
+
+project_dir = Path.cwd()
+for p in [project_dir, project_dir.parent, project_dir.parent / "structural_materials"]:
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
+
+import numpy as np
 import matplotlib.pyplot as plt
 from IPython.display import Markdown, display
 import ipywidgets as widgets

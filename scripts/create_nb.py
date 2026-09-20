@@ -53,8 +53,9 @@ def create_notebook(output_path: Path | None = None) -> Path:
             from IPython.display import HTML, Markdown, clear_output, display
 
             project_dir = Path.cwd()
-            if str(project_dir) not in sys.path:
-                sys.path.insert(0, str(project_dir))
+            for p in [project_dir, project_dir.parent, project_dir.parent / "structural_materials"]:
+                if str(p) not in sys.path:
+                    sys.path.insert(0, str(p))
 
             from sp63_materials import (
                 Concrete,
@@ -404,7 +405,8 @@ def create_notebook(output_path: Path | None = None) -> Path:
         "nbformat": 4,
         "nbformat_minor": 5,
     }
-    target = Path(output_path) if output_path is not None else Path(__file__).resolve().parent / "material_selector.ipynb"
+    target = Path(output_path) if output_path is not None else Path(__file__).resolve().parent.parent / "notebooks" / "material_selector.ipynb"
+    target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(notebook, ensure_ascii=False, indent=2), encoding="utf-8")
     return target
 

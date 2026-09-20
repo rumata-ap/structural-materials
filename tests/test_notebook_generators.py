@@ -1,5 +1,11 @@
 import json
+import sys
 from pathlib import Path
+
+_repo_root = Path(__file__).resolve().parent.parent
+for _dir in [_repo_root / "scripts", _repo_root / "structural_materials", _repo_root]:
+    if str(_dir) not in sys.path:
+        sys.path.insert(0, str(_dir))
 
 from create_nb import create_notebook
 from create_steel_nb import create_steel_notebook
