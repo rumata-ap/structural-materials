@@ -84,11 +84,10 @@ pip install -e .
 
 ## 4. Онлайн-витрина блокнотов (nbviewer)
 
-* **Витрина готовых решений (nbviewer)**:
-  - [Просмотр steel_selector.ipynb](http://debian-13-6:8080/localfile/materials/steel_selector.ipynb)
-  - [Просмотр beton_armatura_selector.ipynb](http://debian-13-6:8080/localfile/materials/beton_armatura_selector.ipynb)
-  - [Просмотр masonry_selector.ipynb](http://debian-13-6:8080/localfile/materials/masonry_selector.ipynb)
-  - [Каталог раздела materials](http://debian-13-6:8080/localfile/materials/)
+* [Просмотр steel_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/steel_selector.ipynb)
+* [Просмотр beton_armatura_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/beton_armatura_selector.ipynb)
+* [Просмотр masonry_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/masonry_selector.ipynb)
+* [Каталог раздела materials](https://jupyter.propgs.ru/localfile/materials/)
 
 ---
 
