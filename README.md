@@ -2,10 +2,13 @@
 
 Библиотека и интерактивные блокноты для выбора и расчета нормативных и расчетных характеристик строительных материалов в соответствии с актуальными российскими строительными сводами правил.
 
+📖 **Онлайн-документация**: [https://rumata-ap.github.io/structural-materials/](https://rumata-ap.github.io/structural-materials/)
+
 ## Структура проекта
 
 ```text
 structural-materials/
+├── docs/                         # Исходники документации Sphinx
 ├── structural_materials/         # Пакет Python (СП 15, СП 16, СП 63)
 │   ├── __init__.py               # Экспорт ключевых классов и модулей
 │   ├── sp15_materials.py         # СП 15.13330 (каменные и армокаменные)
@@ -26,6 +29,7 @@ structural-materials/
 │   ├── test_sp15_materials.py
 │   ├── test_sp16_materials.py
 │   └── test_sp63_materials.py
+├── .github/workflows/docs.yml    # Автодеплой документации на GitHub Pages
 └── pyproject.toml                # Конфигурация пакета и сборщика
 ```
 
