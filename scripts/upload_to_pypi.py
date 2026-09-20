@@ -5,6 +5,10 @@ import os
 import sys
 import uuid
 import hashlib
+import zipfile
+import tarfile
+import email
+import base64
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -15,11 +19,57 @@ PYPI_URL = "https://upload.pypi.org/legacy/"
 TEST_PYPI_URL = "https://test.pypi.org/legacy/"
 
 
-def create_multipart(fields: dict, files: dict) -> tuple[bytes, str]:
+def extract_metadata(file_path: Path) -> list[tuple[str, str]]:
+    text = ""
+    if file_path.name.endswith(".whl"):
+        with zipfile.ZipFile(file_path) as zf:
+            for name in zf.namelist():
+                if name.endswith(".dist-info/METADATA"):
+                    text = zf.read(name).decode("utf-8")
+                    break
+    else:
+        with tarfile.open(file_path, "r:gz") as tf:
+            for member in tf.getmembers():
+                if member.name.endswith("/PKG-INFO"):
+                    f = tf.extractfile(member)
+                    if f:
+                        text = f.read().decode("utf-8")
+                    break
+
+    msg = email.message_from_string(text)
+    fields: list[tuple[str, str]] = [
+        (":action", "file_upload"),
+        ("protocol_version", "1"),
+        ("metadata_version", msg.get("Metadata-Version", "2.1")),
+        ("name", msg.get("Name", "structural-materials")),
+        ("version", msg.get("Version", "0.2.0")),
+        ("summary", msg.get("Summary", "")),
+        ("description", msg.get_payload()),
+        ("description_content_type", msg.get("Description-Content-Type", "text/markdown")),
+        ("author_email", msg.get("Author-email", "")),
+        ("license", msg.get("License", "MIT")),
+        ("requires_python", msg.get("Requires-Python", ">=3.9")),
+    ]
+
+    for c in (msg.get_all("Classifier") or []):
+        fields.append(("classifiers", c))
+    for r in (msg.get_all("Requires-Dist") or []):
+        fields.append(("requires_dist", r))
+    for u in (msg.get_all("Project-URL") or []):
+        fields.append(("project_urls", u))
+    for e in (msg.get_all("Provides-Extra") or []):
+        fields.append(("provides_extra", e))
+
+    return fields
+
+
+def create_multipart(fields: list[tuple[str, str]], files: dict[str, tuple[str, bytes]]) -> tuple[bytes, str]:
     boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
     body = bytearray()
 
-    for key, value in fields.items():
+    for key, value in fields:
+        if value is None:
+            continue
         body.extend(f"--{boundary}\r\n".encode("utf-8"))
         body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode("utf-8"))
         body.extend(str(value).encode("utf-8"))
@@ -46,23 +96,21 @@ def upload_file(file_path: Path, token: str, test: bool = False) -> bool:
     filetype = "bdist_wheel" if is_wheel else "sdist"
     pyversion = "py3" if is_wheel else ""
 
-    fields = {
-        ":action": "file_upload",
-        "protocol_version": "1",
-        "name": "structural-materials",
-        "version": "0.2.0",
-        "filetype": filetype,
-        "pyversion": pyversion,
-        "sha256_digest": hashlib.sha256(data).hexdigest(),
-        "md5_digest": hashlib.md5(data).hexdigest(),
-    }
+    fields = extract_metadata(file_path)
+    fields.extend([
+        ("filetype", filetype),
+        ("pyversion", pyversion),
+        ("sha256_digest", hashlib.sha256(data).hexdigest()),
+        ("md5_digest", hashlib.md5(data).hexdigest()),
+        ("blake2_256_digest", hashlib.blake2b(data, digest_size=32).hexdigest()),
+    ])
+
     files = {
         "content": (filename, data)
     }
 
     body, content_type = create_multipart(fields, files)
 
-    import base64
     auth_header = "Basic " + base64.b64encode(f"__token__:{token}".encode("utf-8")).decode("ascii")
 
     req = urllib.request.Request(
@@ -71,7 +119,7 @@ def upload_file(file_path: Path, token: str, test: bool = False) -> bool:
         headers={
             "Content-Type": content_type,
             "Authorization": auth_header,
-            "User-Agent": "structural-materials-uploader/0.2.0",
+            "User-Agent": "twine/5.1.1 structural-materials-uploader/0.2.0",
         },
     )
 

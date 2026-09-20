@@ -3,7 +3,10 @@
 Библиотека и интерактивные блокноты для выбора и расчета нормативных и расчетных характеристик строительных материалов в соответствии с актуальными российскими строительными сводами правил.
 
 📖 **Онлайн-документация**: [https://structural-materials.readthedocs.io/](https://structural-materials.readthedocs.io/)  
+[![PyPI](https://img.shields.io/pypi/v/structural-materials.svg)](https://pypi.org/project/structural-materials/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/structural-materials.svg)](https://pypi.org/project/structural-materials/)
 [![Documentation Status](https://readthedocs.org/projects/structural-materials/badge/?version=latest)](https://structural-materials.readthedocs.io/ru/latest/?badge=latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Структура проекта
 
@@ -20,7 +23,9 @@ structural-materials/
 │   ├── masonry_selector.ipynb
 │   ├── material_selector.ipynb
 │   └── steel_selector.ipynb
-├── scripts/                      # Генераторы блокнотов
+├── scripts/                      # Вспомогательные скрипты и генераторы
+│   ├── build_dist.py             # Сборка пакетов wheel и sdist
+│   ├── upload_to_pypi.py         # Публикация пакета на PyPI
 │   ├── create_masonry_nb.py
 │   ├── create_nb.py
 │   └── create_steel_nb.py
@@ -30,13 +35,25 @@ structural-materials/
 │   ├── test_sp15_materials.py
 │   ├── test_sp16_materials.py
 │   └── test_sp63_materials.py
+├── .readthedocs.yaml             # Конфигурация Read the Docs
 ├── .github/workflows/docs.yml    # Автодеплой документации на GitHub Pages
+├── LICENSE                       # Лицензия MIT
 └── pyproject.toml                # Конфигурация пакета и сборщика
 ```
 
 ### Установка пакета
 
+Установка стабильной версии из PyPI:
+
 ```bash
+pip install structural-materials
+```
+
+Установка из репозитория в режиме разработки:
+
+```bash
+git clone https://github.com/rumata-ap/structural-materials.git
+cd structural-materials
 pip install -e .
 ```
 
