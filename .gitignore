@@ -56,3 +56,7 @@ sp15_notes.txt
 tables_extracted.txt
 parse_tables.py
 parse_bolts.py
+
+# Local plans and specs
+plans/
+specs/
