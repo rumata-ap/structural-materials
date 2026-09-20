@@ -2,7 +2,8 @@
 
 Библиотека и интерактивные блокноты для выбора и расчета нормативных и расчетных характеристик строительных материалов в соответствии с актуальными российскими строительными сводами правил.
 
-📖 **Онлайн-документация**: [https://rumata-ap.github.io/structural-materials/](https://rumata-ap.github.io/structural-materials/)
+📖 **Онлайн-документация**: [https://structural-materials.readthedocs.io/](https://structural-materials.readthedocs.io/)  
+[![Documentation Status](https://readthedocs.org/projects/structural-materials/badge/?version=latest)](https://structural-materials.readthedocs.io/ru/latest/?badge=latest)
 
 ## Структура проекта
 
