@@ -144,3 +144,19 @@ def test_masonry_notebook_does_not_display_generated_code_snippet(tmp_path):
     )
     assert 'generate_masonry_code_snippet' not in source
     assert 'Готовый фрагмент кода' not in source
+
+
+def test_wood_notebook_is_valid_and_compiles():
+    wood_path = _repo_root / "notebooks" / "wood_selector.ipynb"
+    assert wood_path.exists()
+    notebook = json.loads(wood_path.read_text(encoding="utf-8"))
+    assert notebook["nbformat"] == 4
+    code_cells = [cell for cell in notebook["cells"] if cell["cell_type"] == "code"]
+    assert len(code_cells) > 0
+    for index, cell in enumerate(code_cells):
+        compile("".join(cell.get("source", [])), f"wood-cell-{index}", "exec")
+    source = "\n".join("".join(cell.get("source", [])) for cell in code_cells)
+    assert "Timber" in source
+    assert "Glulam" in source
+    assert "WoodContext" in source
+

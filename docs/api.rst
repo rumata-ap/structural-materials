@@ -29,3 +29,13 @@
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
+
+Деревянные конструкции (СП 64.13330)
+------------------------------------
+
+.. automodule:: structural_materials.sp64_materials
+   :members: Timber, StrengthClassWood, Glulam, LVL, Plywood, OSB3, WoodContext, list_strength_classes, list_glulam_classes, list_lvl_classes, list_service_classes, list_load_duration_modes, list_wood_species
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+

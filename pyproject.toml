@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "structural-materials"
-version = "0.2.0"
-description = "Расчет нормативных характеристик строительных материалов (СП 15, СП 16, СП 63)"
+version = "0.3.0"
+description = "Расчет нормативных характеристик строительных материалов (СП 15, СП 16, СП 63, СП 64)"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
@@ -19,9 +19,14 @@ keywords = [
     "rebar",
     "steel",
     "masonry",
+    "wood",
+    "timber",
+    "glulam",
+    "lvl",
     "sp63",
     "sp16",
     "sp15",
+    "sp64",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

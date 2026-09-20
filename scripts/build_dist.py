@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
 PACKAGE = ROOT / "structural_materials"
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 NAME = "structural-materials"
 MODULE_NAME = "structural_materials"
 
@@ -27,14 +27,14 @@ def build_metadata() -> str:
         "Metadata-Version: 2.1",
         f"Name: {NAME}",
         f"Version: {VERSION}",
-        "Summary: Расчет нормативных характеристик строительных материалов (СП 15, СП 16, СП 63)",
+        "Summary: Расчет нормативных характеристик строительных материалов (СП 15, СП 16, СП 63, СП 64)",
         "Author-email: Aleksandr Ponomarev <palexxvlad@yandex.ru>",
         "License: MIT",
         "Project-URL: Homepage, https://github.com/rumata-ap/structural-materials",
         "Project-URL: Documentation, https://structural-materials.readthedocs.io/",
         "Project-URL: Repository, https://github.com/rumata-ap/structural-materials.git",
         "Project-URL: Issues, https://github.com/rumata-ap/structural-materials/issues",
-        "Keywords: structural-engineering,materials,concrete,rebar,steel,masonry,sp63,sp16,sp15",
+        "Keywords: structural-engineering,materials,concrete,rebar,steel,masonry,wood,timber,glulam,lvl,sp63,sp16,sp15,sp64",
         "Classifier: Development Status :: 4 - Beta",
         "Classifier: Intended Audience :: Science/Research",
         "Classifier: Topic :: Scientific/Engineering",

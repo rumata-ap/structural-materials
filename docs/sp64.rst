@@ -1,0 +1,120 @@
+СП 64.13330.2017 «Деревянные конструкции»
+=============================================
+
+Модуль ``structural_materials.sp64_materials`` предоставляет классы и функции для расчёта нормативных и расчётных характеристик материалов деревянных конструкций по **СП 64.13330.2017** (в редакции от 28.12.2023 с Изменениями № 1–4).
+
+Поддерживаемые материалы:
+* Цельная древесина по сортам (``Timber``).
+* Древесина по классам прочности C/T/D (``StrengthClassWood``).
+* Клеёная древесина классов K16–K40 (``Glulam``).
+* Брус клеёный из шпона LVL (``LVL``).
+* Фанера строительная марок ФСФ, ФК, ФБС (``Plywood``).
+* Ориентированно-стружечные плиты ОСП-3 (``OSB3``).
+* Контекст коэффициентов условий работы и длительности (``WoodContext``).
+
+Условия эксплуатации и нагрузки (класс ``WoodContext``)
+-------------------------------------------------------
+
+Класс :class:`~structural_materials.sp64_materials.WoodContext` объединяет коэффициенты условий работы:
+
+* **Режим длительности нагрузки** (Таблица 4):
+  - ``"А"``: постоянная + кратковременная (ветровая, снеговая и т.п.) — :math:`m_{дл} = 1{,}0`.
+  - ``"Б"`` .. ``"М"``: режимы с длительным действием нагрузки (:math:`m_{дл} = 0{,}9 \dots 0{,}1`).
+* **Класс условий эксплуатации / влажностный режим** (Таблица 2):
+  - ``"1а"``, ``"1б"``, ``"2"``: сухие и нормальные помещения (:math:`m_в = 1{,}0`).
+  - ``"3"``: влажные помещения и открытый воздух под навесом (:math:`m_в = 0{,}9`).
+  - ``"4а"``: открытый воздух, контакт с грунтом (:math:`m_в = 0{,}85`).
+  - ``"4б"``: постоянное погружение в пресную воду (:math:`m_в = 0{,}75`).
+* **Температура эксплуатации**: расчет коэффициента :math:`m_т` при повышенных температурах до 50 °C (п. 5.14).
+* **Срок службы сооружения**: коэффициент :math:`m_{сс}` (Таблица 5) при сроке 25, 50 или 100 лет.
+
+Пример создания контекста:
+
+.. code-block:: python
+
+   from structural_materials import WoodContext
+
+   # Снеговая + постоянная нагрузка, нормальное отапливаемое помещение (класс 1а)
+   ctx = WoodContext(load_duration="А", service_class="1а", temperature_c=20.0, service_life_years=50.0)
+
+   print(f"m_dl = {ctx.m_dl}, m_b = {ctx.m_b}, m_tot = {ctx.m_tot('bending')}")
+
+Цельная древесина по сортам (класс ``Timber``)
+----------------------------------------------
+
+Класс :class:`~structural_materials.sp64_materials.Timber` вычисляет сопротивления по Таблице 3 и Приложению В.1:
+
+* Породы: сосна (``pine``), ель (``spruce``), лиственница (``larch_euro``, ``larch_east``), берёза (``birch``), дуб (``oak``) и др.
+* Сорта: 1, 2, 3.
+* Геометрия сечения: учет ширины и высоты (коэффициенты :math:`m_б`, :math:`m_ш`).
+* Виды напряжённого состояния: изгиб (``bending``), сжатие и растяжение вдоль/поперёк волокон, скалывание.
+
+.. code-block:: python
+
+   from structural_materials import Timber, WoodContext
+
+   ctx = WoodContext(load_duration="А", service_class="2")
+   beam = Timber(sort=2, species="pine", geometry_case="rectangular_edge_h_le_500", context=ctx)
+
+   # Расчетные сопротивления (с учетом коэффициентов надежности и условий работы)
+   print(f"R_изгиб = {beam.resistance('bending'):.2f} МПа")
+   print(f"R_сжатие_вдоль = {beam.resistance('compression_parallel'):.2f} МПа")
+   print(f"R_растяжение_вдоль = {beam.resistance('tension_parallel'):.2f} МПа")
+
+   # Нормативные значения (design=False)
+   print(f"R_norm_изгиб = {beam.resistance('bending', design=False):.2f} МПа")
+   print(f"Модуль упругости E = {beam.E_mean_MPa} МПа")
+
+Клеёная древесина (класс ``Glulam``)
+------------------------------------
+
+Класс :class:`~structural_materials.sp64_materials.Glulam` реализует характеристики клеёной древесины по Приложению В.4:
+
+* Классы прочности: ``K16``, ``K20``, ``K24``, ``K28``, ``K32``, ``K36``, ``K40``.
+* Учет толщины склеиваемых слоев (:math:`m_{сл}`) и высоты балки (:math:`m_б`).
+
+.. code-block:: python
+
+   from structural_materials import Glulam, WoodContext
+
+   ctx = WoodContext(load_duration="А", service_class="1а")
+   glulam = Glulam(grade="K24", context=ctx, layer_thickness_mm=33.0, h_mm=600.0)
+
+   print(f"Glulam K24: R_изгиб = {glulam.resistance('bending'):.2f} МПа")
+   print(f"Модуль упругости: E_mean = {glulam.E_mean_MPa} МПа, E_05 = {glulam.E_05_MPa} МПа")
+
+Брус клеёный из шпона (класс ``LVL``)
+-------------------------------------
+
+Класс :class:`~structural_materials.sp64_materials.LVL` вычисляет свойства конструкционного шпонового бруса (LVL) по Таблицам В.2, В.2а и Таблице 7:
+
+* Классы/марки: ``1/K45``, ``1/K40``, ``2/K35``, ``3/K30``.
+
+.. code-block:: python
+
+   from structural_materials import LVL, WoodContext
+
+   lvl = LVL(grade="1/K45", context=WoodContext(load_duration="А"))
+
+   print(f"LVL 1/K45: R_изгиб = {lvl.resistance('bending'):.2f} МПа")
+   print(f"LVL 1/K45: R_растяжение = {lvl.resistance('tension_parallel'):.2f} МПа")
+   print(f"LVL 1/K45: E = {lvl.E_mean_MPa} МПа")
+
+Плитные материалы: фанера (``Plywood``) и ОСП (``OSB3``)
+--------------------------------------------------------
+
+Классы :class:`~structural_materials.sp64_materials.Plywood` и :class:`~structural_materials.sp64_materials.OSB3` рассчитывают анизотропные характеристики плитных обшивок с учетом ориентации волокон:
+
+.. code-block:: python
+
+   from structural_materials import Plywood, OSB3, WoodContext
+
+   ctx = WoodContext(load_duration="А")
+
+   # Фанера ФСФ березовая 12 мм, изгиб вдоль волокон наружных слоев
+   plywood = Plywood(kind="FSF_birch", thickness_mm=12.0, layers=9, direction="parallel", context=ctx)
+   print(f"Фанера ФСФ: R_изгиб = {plywood.resistance('bending'):.2f} МПа, E = {plywood.E_mean_MPa} МПа")
+
+   # ОСП-3 по главной оси
+   osb = OSB3(direction="major", context=ctx)
+   print(f"OSB-3: R_изгиб = {osb.resistance('bending'):.2f} МПа, E = {osb.E_mean_MPa} МПа")

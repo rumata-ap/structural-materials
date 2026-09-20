@@ -1,4 +1,4 @@
-# Нормативная библиотека материалов (СП 15.13330 / СП 63.13330 / СП 16.13330)
+# Нормативная библиотека материалов (СП 15.13330 / СП 16.13330 / СП 63.13330 / СП 64.13330)
 
 Библиотека и интерактивные блокноты для выбора и расчета нормативных и расчетных характеристик строительных материалов в соответствии с актуальными российскими строительными сводами правил.
 
@@ -13,16 +13,18 @@
 ```text
 structural-materials/
 ├── docs/                         # Исходники документации Sphinx
-├── structural_materials/         # Пакет Python (СП 15, СП 16, СП 63)
+├── structural_materials/         # Пакет Python (СП 15, СП 16, СП 63, СП 64)
 │   ├── __init__.py               # Экспорт ключевых классов и модулей
 │   ├── sp15_materials.py         # СП 15.13330 (каменные и армокаменные)
 │   ├── sp16_materials.py         # СП 16.13330 (сталь и болты)
 │   ├── sp63_materials.py         # СП 63.13330 (бетон и арматура)
+│   ├── sp64_materials.py         # СП 64.13330 (деревянные конструкции)
 │   └── sp15_tables_data.json
 ├── notebooks/                    # Интерактивные блокноты Jupyter
 │   ├── masonry_selector.ipynb
 │   ├── material_selector.ipynb
-│   └── steel_selector.ipynb
+│   ├── steel_selector.ipynb
+│   └── wood_selector.ipynb
 ├── scripts/                      # Вспомогательные скрипты и генераторы
 │   ├── build_dist.py             # Сборка пакетов wheel и sdist
 │   ├── upload_to_pypi.py         # Публикация пакета на PyPI
@@ -34,7 +36,8 @@ structural-materials/
 │   ├── test_notebook_generators.py
 │   ├── test_sp15_materials.py
 │   ├── test_sp16_materials.py
-│   └── test_sp63_materials.py
+│   ├── test_sp63_materials.py
+│   └── test_sp64_materials.py
 ├── .readthedocs.yaml             # Конфигурация Read the Docs
 ├── .github/workflows/docs.yml    # Автодеплой документации на GitHub Pages
 ├── LICENSE                       # Лицензия MIT
@@ -104,8 +107,25 @@ pip install -e .
 
 ---
 
-## 4. Онлайн-витрина блокнотов (nbviewer)
+## 4. СП 64.13330.2017 «Деревянные конструкции»
 
+* **Модуль `sp64_materials.py`**:
+  - Нормативные и расчетные характеристики древесины и материалов на ее основе по СП 64.13330.2017 (в ред. Изменений № 1–4 от 28.12.2023).
+  - `Timber`: цельная древесина по сортам 1, 2, 3 и породам (сосна, ель, лиственница, береза, дуб и др.), учет геометрических размеров ($m_б, m_ш$).
+  - `StrengthClassWood`: цельная древесина по классам прочности C14–C50, T9–T30, D18–D70 (Приложение В.3).
+  - `Glulam`: клеёная древесина классов K16–K40 с учетом толщины слоев ($m_{сл}$) и высоты балки ($m_б$) (Приложение В.4).
+  - `LVL`: брус клееный из шпона сортов 1/K45, 1/K40, 2/K35, 3/K30 (Таблицы В.2, В.2а, 7).
+  - `Plywood` и `OSB3`: фанера марок ФСФ, ФК, ФБС и плиты ОСП-3 с учетом анизотропии и ориентации волокон.
+  - `WoodContext`: гибкий расчет коэффициентов условий работы: классов условий эксплуатации (1а–4б), режимов длительности нагрузки (А–М), температуры $m_т$ и срока службы сооружения $m_{сс}$.
+* **Блокнот `wood_selector.ipynb`**:
+  - Интерактивный расчет и подбор деревянных элементов и плитных обшивок на `ipywidgets` с визуализацией характеристик и автоматической генерацией кода.
+* **Тесты**: `pytest` или `pytest -v tests/test_sp64_materials.py`.
+
+---
+
+## 5. Онлайн-витрина блокнотов (nbviewer)
+
+* [Просмотр wood_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/wood_selector.ipynb)
 * [Просмотр steel_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/steel_selector.ipynb)
 * [Просмотр beton_armatura_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/beton_armatura_selector.ipynb)
 * [Просмотр masonry_selector.ipynb](https://jupyter.propgs.ru/localfile/materials/masonry_selector.ipynb)
@@ -113,34 +133,44 @@ pip install -e .
 
 ---
 
-## 5. Примеры использования в инженерном коде
+## 6. Примеры использования в инженерном коде
 
 ```python
 # Вариант 1: импорт напрямую из пакета
-from structural_materials import Concrete, Rebar, StructuralSteel, SteelBolt, Masonry
+from structural_materials import (
+    Concrete, Rebar,
+    StructuralSteel, SteelBolt,
+    Masonry,
+    Timber, Glulam, LVL, WoodContext,
+)
 
-# Вариант 2: импорт из подмодулей (полная обратная совместимость)
-from sp63_materials import Concrete, Rebar
-
+# --- Бетон и арматура (СП 63) ---
 concrete = Concrete(grade='B25', humidity='40-75%', long_term=True)
 rebar = Rebar(grade='A500')
 print(f"Бетон B25: Rb = {concrete.Rb} МПа, Eb,red = {concrete.Eb_red} МПа")
 print(f"Арматура A500: Rs = {rebar.Rs} МПа")
 
 # --- Сталь и болты (СП 16) ---
-from sp16_materials import StructuralSteel, SteelBolt
-
-# Фасонный прокат С255, толщина полки tf = 14 мм, статистический контроль
 steel = StructuralSteel(grade='С255', profile_type='shapes', thickness=14.0, statistical_control=True)
 bolt = SteelBolt(grade='8.8', diameter=20, gamma_b=0.9)
-
-print(f"Сталь С255 (tf=14 мм): Ry = {steel.Ry} МПа, Ru = {steel.Ru} МПа, Rs = {steel.Rs} МПа")
-print(f"Болт 8.8 М20: срез Nbs = {bolt.shear_capacity(1)} кН, растяжение Nbt = {bolt.tension_capacity()} кН")
+print(f"Сталь С255 (tf=14 мм): Ry = {steel.Ry} МПа, Ru = {steel.Ru} МПа")
+print(f"Болт 8.8 М20: срез Nbs = {bolt.shear_capacity(1):.1f} кН, растяжение Nbt = {bolt.tension_capacity():.1f} кН")
 
 # --- Каменная кладка (СП 15) ---
-from sp15_materials import Masonry
-
 masonry = Masonry('brick', 'M150', 'M100')
-reinforced = masonry.with_mesh_reinforcement(4, 50, 2, 65)
+reinforced = masonry.with_mesh_reinforcement(d=4, s=50, c=2, s_vert=65)
 print(f"Кладка: R = {masonry.R:.2f} МПа, Rsk = {reinforced.Rsk:.2f} МПа")
+
+# --- Деревянные конструкции (СП 64) ---
+# Режим А (кратковременная/снеговая), отапливаемое помещение (класс 1а)
+ctx = WoodContext(load_duration="А", service_class="1а")
+
+timber = Timber(sort=2, species="pine", geometry_case="rectangular_edge_h_le_500", context=ctx)
+print(f"Сосна 2 сорт: R_изгиб = {timber.resistance('bending'):.2f} МПа, E = {timber.E_mean_MPa} МПа")
+
+glulam = Glulam(grade="K24", context=ctx, layer_thickness_mm=33.0, h_mm=600.0)
+print(f"Glulam K24: R_изгиб = {glulam.resistance('bending'):.2f} МПа, E = {glulam.E_mean_MPa} МПа")
+
+lvl = LVL(grade="1/K45", context=ctx)
+print(f"LVL 1/K45: R_изгиб = {lvl.resistance('bending'):.2f} МПа, E = {lvl.E_mean_MPa} МПа")
 ```
